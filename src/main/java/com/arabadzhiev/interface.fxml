@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?import javafx.scene.layout.BorderPane?>
+<?import javafx.scene.layout.VBox?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.AnchorPane?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.MenuBar?>
+<?import javafx.scene.control.Menu?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.MenuItem?>
+<?import javafx.scene.canvas.Canvas?>
+<?import javafx.scene.control.ColorPicker?>
+<?import javafx.scene.paint.Color?>
+
+<BorderPane xmlns:fx="http://javafx.com/fxml" 
+fx:controller="com.arabadzhiev.Controller"
+style="-fx-background-color: gray"
+fx:id="rootPane">
+	<top>
+		<VBox>
+			<MenuBar>
+				<Menu text="File">
+					<MenuItem text="Save          Ctrl+S"/>
+					<MenuItem text="Save as" onAction="#handle" fx:id="saveItem"/>
+				</Menu>
+				<Menu text="Utility"/>
+				<Menu text="Help"/>
+			</MenuBar>
+			<HBox>
+				<ColorPicker fx:id="colorPicker">
+					<value>
+						<Color red="0.0" green="0.0" blue="0.0"/>
+					</value>
+				</ColorPicker>
+				<Button text="Pencil" disable="true" onAction="#handle" fx:id="pencilButton"/>
+				<Button text="Rectagle" onAction="#handle" fx:id="rectangleButton"/>
+				<Button text="Oval" onAction ="#handle" fx:id="ovalButton"/>
+				<Button text="Triangle" onAction="#handle" fx:id="triangleButton"/>
+			</HBox>
+		</VBox>
+	</top>
+	<bottom>
+		<Label text="x:n/a y:n/a" fx:id = "locator"/>
+	</bottom>
+	<center>
+		<AnchorPane style="-fx-background-color: #9faab7">
+			<AnchorPane style="-fx-background-color: white" fx:id="canvasPane">
+				<Canvas fx:id="canvas" height="400.0" width="600.0" onMouseMoved="#listenForMovement" 
+				onMousePressed="#listenForPress" onMouseReleased="#listenForRelease" onMouseDragged="#listenForDrag" 
+				pickOnBounds="true"/>
+			</AnchorPane>
+		</AnchorPane>
+	</center>
+</BorderPane>
