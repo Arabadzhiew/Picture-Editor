@@ -15,9 +15,6 @@ import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
-import javafx.geometry.HPos;
-import javafx.geometry.Insets;
-import javafx.geometry.VPos;
 import javafx.scene.Cursor;
 import javafx.scene.ImageCursor;
 import javafx.scene.SnapshotParameters;
@@ -35,9 +32,6 @@ import javafx.scene.image.WritableImage;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.AnchorPane;
 import javafx.scene.layout.BorderPane;
-import javafx.scene.layout.ColumnConstraints;
-import javafx.scene.layout.GridPane;
-import javafx.scene.layout.RowConstraints;
 import javafx.scene.paint.Color;
 import javafx.stage.FileChooser;
 
@@ -192,20 +186,6 @@ public class Controller implements Initializable, EventHandler<ActionEvent>{
 		canvasSnapshots.add(snapshot);
 		pr = snapshot.getPixelReader();
 		undoButton.setDisable(false);
-	}
-	
-	private void setGridRowConstraints(GridPane gp, double rowPercent, VPos vAlignment) {
-		RowConstraints rc = new RowConstraints();
-		rc.setPercentHeight(rowPercent);
-		rc.setValignment(vAlignment);
-		gp.getRowConstraints().add(rc);
-	}
-	
-	private void setGridColumnConstraints(GridPane gp, double columnPercent, HPos hAlignment) {
-		ColumnConstraints cc = new ColumnConstraints();
-		cc.setPercentWidth(columnPercent);
-		cc.setHalignment(hAlignment);
-		gp.getColumnConstraints().add(cc);
 	}
 	
 	private void drawRectangle(double startX, double startY, double endX, double endY) {

@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <?import javafx.scene.layout.BorderPane?>
 <?import javafx.scene.layout.VBox?>
-<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.GridPane?>
 <?import javafx.scene.layout.AnchorPane?>
 <?import javafx.scene.control.Label?>
 <?import javafx.scene.control.MenuBar?>
@@ -11,11 +11,16 @@
 <?import javafx.scene.canvas.Canvas?>
 <?import javafx.scene.control.ColorPicker?>
 <?import javafx.scene.paint.Color?>
+<?import javafx.scene.layout.RowConstraints?>
+<?import javafx.scene.layout.ColumnConstraints?>
+<?import javafx.geometry.VPos?>
+<?import javafx.geometry.HPos?>
 
 <BorderPane xmlns:fx="http://javafx.com/fxml" 
 fx:controller="com.arabadzhiev.Controller"
 style="-fx-background-color: gray"
-fx:id="rootPane">
+fx:id="rootPane"
+stylesheets="resources/style.css">
 	<top>
 		<VBox>
 			<MenuBar>
@@ -26,21 +31,118 @@ fx:id="rootPane">
 				<Menu text="Utility"/>
 				<Menu text="Help"/>
 			</MenuBar>
-			<HBox>
-				<ColorPicker fx:id="colorPicker">
-					<value>
-						<Color red="0.0" green="0.0" blue="0.0"/>
-					</value>
-				</ColorPicker>
-				<Button disable="true" onAction="#handle" fx:id="pencilButton"/>
-				<Button text="Line" onAction="#handle" fx:id="lineButton"/>
-				<Button text="Rectagle" onAction="#handle" fx:id="rectangleButton"/>
-				<Button text="Oval" onAction ="#handle" fx:id="ovalButton"/>
-				<Button text="Triangle" onAction="#handle" fx:id="triangleButton"/>
-				<Button onAction="#handle" fx:id="fillButton"/>
-				<Button onAction="#handle" disable="true" fx:id="undoButton"/>
-				<Button onAction="#handle" disable="true" fx:id="redoButton"/>
-			</HBox>
+			<GridPane>
+				<rowConstraints>
+					<RowConstraints percentHeight="100.0" valignment="CENTER"/>
+				</rowConstraints>
+				<columnConstraints>
+					<ColumnConstraints percentWidth="20.0" halignment="CENTER"/>
+					<ColumnConstraints percentWidth="15.0" halignment="CENTER"/>
+					<ColumnConstraints percentWidth="25.0" halignment="CENTER"/>
+					<ColumnConstraints percentWidth="20.0" halignment="CENTER"/>
+					<ColumnConstraints percentWidth="20.0" halignment="CENTER"/>
+				</columnConstraints>
+				<children>
+					<GridPane GridPane.rowIndex="0" GridPane.columnIndex="0" styleClass="pane-with-border">
+					
+					</GridPane>
+					<GridPane GridPane.rowIndex="0" GridPane.columnIndex="1" styleClass="pane-with-border">
+						<rowConstraints>
+							<RowConstraints percentHeight="20.0" valignment="CENTER"/>
+							<RowConstraints percentHeight="80.0" valignment="CENTER"/>
+						</rowConstraints>
+						<columnConstraints>
+							<ColumnConstraints percentWidth="100.0" halignment="CENTER"/>
+						</columnConstraints>
+						<children>
+							<Label GridPane.rowIndex="0" GridPane.columnIndex="0" text="Tools" styleClass="highlight-label"/>
+							<GridPane GridPane.rowIndex="1" GridPane.columnIndex="0">
+								<rowConstraints>
+									<RowConstraints percentHeight="50.0" valignment="CENTER"/>
+									<RowConstraints percentHeight="50.0" valignment="CENTER"/>
+								</rowConstraints>
+								<columnConstraints>
+									<ColumnConstraints percentWidth="50.0" halignment="CENTER"/>
+									<ColumnConstraints percentWidth="50.0" halignment="CENTER"/>
+								</columnConstraints>
+								<children>
+									<Button GridPane.rowIndex="0" GridPane.columnIndex="0"  disable="true" onAction="#handle" fx:id="pencilButton"/>
+									<Button GridPane.rowIndex="0" GridPane.columnIndex="1"  onAction="#handle" fx:id="fillButton"/>
+								</children>
+							</GridPane>
+						</children>
+					</GridPane>
+					<GridPane GridPane.rowIndex="0" GridPane.columnIndex="2" styleClass="pane-with-border">
+						<rowConstraints>
+							<RowConstraints percentHeight="20.0" valignment="CENTER"/>
+							<RowConstraints percentHeight="80.0" valignment="CENTER"/>
+						</rowConstraints>
+						<columnConstraints>
+							<ColumnConstraints percentWidth="100.0" halignment="CENTER"/>
+						</columnConstraints>
+						<children>
+							<Label GridPane.rowIndex="0" GridPane.columnIndex="0" text="Shapes" styleClass="highlight-label"/>
+							<GridPane GridPane.rowIndex="1" GridPane.columnIndex="0">
+								<rowConstraints>
+									<RowConstraints percentHeight="50.0" valignment="CENTER"/>
+									<RowConstraints percentHeight="50.0" valignment="CENTER"/>
+								</rowConstraints>
+								<columnConstraints>
+									<ColumnConstraints percentWidth="33.3" halignment="CENTER"/>
+									<ColumnConstraints percentWidth="33.3" halignment="CENTER"/>
+									<ColumnConstraints percentWidth="33.3" halignment="CENTER"/>
+								</columnConstraints>
+								<children>
+									<Button GridPane.rowIndex="0" GridPane.columnIndex="0" text="Line" onAction="#handle" fx:id="lineButton"/>
+									<Button GridPane.rowIndex="0" GridPane.columnIndex="1" text="Rectagle" onAction="#handle" fx:id="rectangleButton"/>
+									<Button GridPane.rowIndex="0" GridPane.columnIndex="2" text="Oval" onAction ="#handle" fx:id="ovalButton"/>
+									<Button GridPane.rowIndex="1" GridPane.columnIndex="0" text="Triangle" onAction="#handle" fx:id="triangleButton"/>
+								</children>
+							</GridPane>
+						</children>
+					</GridPane>
+					<GridPane GridPane.rowIndex="0" GridPane.columnIndex="3" styleClass="pane-with-border">
+						<rowConstraints>
+							<RowConstraints percentHeight="20.0" valignment="CENTER"/>
+							<RowConstraints percentHeight="80.0" valignment="CENTER"/>
+						</rowConstraints>
+						<columnConstraints>
+							<ColumnConstraints percentWidth="100.0" halignment="CENTER"/>
+						</columnConstraints>
+						<children>
+							<Label GridPane.rowIndex="0" GridPane.columnIndex="0" text="Color" styleClass="highlight-label"/>
+							<ColorPicker GridPane.rowIndex="1" GridPane.columnIndex="0" fx:id="colorPicker">
+								<value>
+									<Color red="0.0" green="0.0" blue="0.0"/>
+								</value>
+							</ColorPicker>
+						</children>
+					</GridPane>
+					<GridPane GridPane.rowIndex="0" GridPane.columnIndex="4">
+						<rowConstraints>
+							<RowConstraints percentHeight="100.0" valignment="CENTER"/>
+						</rowConstraints>
+						<columnConstraints>
+							<ColumnConstraints percentWidth="100.0" halignment="CENTER"/>
+						</columnConstraints>
+						<children>
+							<GridPane GridPane.rowIndex="0" GridPane.columnIndex="0">
+								<rowConstraints>
+									<RowConstraints percentHeight="100.0" valignment="CENTER"/>
+								</rowConstraints>
+								<columnConstraints>
+									<ColumnConstraints percentWidth="50.0" halignment="CENTER"/>
+									<ColumnConstraints percentWidth="50.0" halignment="CENTER"/>
+								</columnConstraints>
+								<children>
+									<Button GridPane.rowIndex="0" GridPane.columnIndex="0" onAction="#handle" disable="true" fx:id="undoButton"/>
+									<Button GridPane.rowIndex="0" GridPane.columnIndex="1" onAction="#handle" disable="true" fx:id="redoButton"/>
+								</children>
+							</GridPane>
+						</children>
+					</GridPane>
+				</children>
+			</GridPane>
 		</VBox>
 	</top>
 	<bottom>

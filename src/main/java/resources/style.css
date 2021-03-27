@@ -1,0 +1,11 @@
+.highlight-label{
+	-fx-text-alignment: center;
+	-fx-text-fill: #FFFFFF;
+	-fx-border-style: hidden hidden solid hidden;
+	-fx-border-width: 1;
+	-fx-border-color: green;
+}
+.pane-with-border{
+	-fx-border-style: hidden solid hidden hidden;
+	-fx-border-color: #737373;
+}
