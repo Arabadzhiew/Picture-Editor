@@ -5,5 +5,6 @@ module com.arabadzhiev {
     requires transitive javafx.controls;
     requires transitive javafx.graphics;
     
+    opens com.arabadzhiev to javafx.fxml;
     exports com.arabadzhiev;
 }

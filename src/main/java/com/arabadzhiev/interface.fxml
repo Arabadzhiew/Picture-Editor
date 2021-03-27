@@ -33,9 +33,13 @@ fx:id="rootPane">
 					</value>
 				</ColorPicker>
 				<Button text="Pencil" disable="true" onAction="#handle" fx:id="pencilButton"/>
+				<Button text="Line" onAction="#handle" fx:id="lineButton"/>
 				<Button text="Rectagle" onAction="#handle" fx:id="rectangleButton"/>
 				<Button text="Oval" onAction ="#handle" fx:id="ovalButton"/>
 				<Button text="Triangle" onAction="#handle" fx:id="triangleButton"/>
+				<Button text="Fill" onAction="#handle" fx:id="fillButton"/>
+				<Button text="Undo" onAction="#handle" disable="true" fx:id="undoButton"/>
+				<Button text="Redo" onAction="#handle" disable="true" fx:id="redoButton"/>
 			</HBox>
 		</VBox>
 	</top>
@@ -45,7 +49,7 @@ fx:id="rootPane">
 	<center>
 		<AnchorPane style="-fx-background-color: #9faab7">
 			<AnchorPane style="-fx-background-color: white" fx:id="canvasPane">
-				<Canvas fx:id="canvas" height="400.0" width="600.0" onMouseMoved="#listenForMovement" 
+				<Canvas fx:id="canvas" width="600.0" height="400.0" onMouseMoved="#listenForMovement" 
 				onMousePressed="#listenForPress" onMouseReleased="#listenForRelease" onMouseDragged="#listenForDrag" 
 				pickOnBounds="true"/>
 			</AnchorPane>
