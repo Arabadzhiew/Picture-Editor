@@ -32,14 +32,14 @@ fx:id="rootPane">
 						<Color red="0.0" green="0.0" blue="0.0"/>
 					</value>
 				</ColorPicker>
-				<Button text="Pencil" disable="true" onAction="#handle" fx:id="pencilButton"/>
+				<Button disable="true" onAction="#handle" fx:id="pencilButton"/>
 				<Button text="Line" onAction="#handle" fx:id="lineButton"/>
 				<Button text="Rectagle" onAction="#handle" fx:id="rectangleButton"/>
 				<Button text="Oval" onAction ="#handle" fx:id="ovalButton"/>
 				<Button text="Triangle" onAction="#handle" fx:id="triangleButton"/>
-				<Button text="Fill" onAction="#handle" fx:id="fillButton"/>
-				<Button text="Undo" onAction="#handle" disable="true" fx:id="undoButton"/>
-				<Button text="Redo" onAction="#handle" disable="true" fx:id="redoButton"/>
+				<Button onAction="#handle" fx:id="fillButton"/>
+				<Button onAction="#handle" disable="true" fx:id="undoButton"/>
+				<Button onAction="#handle" disable="true" fx:id="redoButton"/>
 			</HBox>
 		</VBox>
 	</top>
