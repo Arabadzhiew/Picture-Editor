@@ -1,2 +1,3 @@
-<a target="_blank" href="https://icons8.com/icons/set/fill-color">Fill Color icon</a> icon by <a target="_blank" href="https://icons8.com">Icons8</a>
+# This project is still under development.
+
 <div>Icons made by <a href="https://www.freepik.com" title="Freepik">Freepik</a> from <a href="https://www.flaticon.com/" title="Flaticon">www.flaticon.com</a></div>

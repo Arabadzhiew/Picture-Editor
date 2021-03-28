@@ -24,13 +24,14 @@ import javafx.scene.control.Button;
 import javafx.scene.control.ColorPicker;
 import javafx.scene.control.Label;
 import javafx.scene.control.MenuItem;
+import javafx.scene.control.ScrollPane;
+import javafx.scene.control.TextField;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.image.PixelReader;
 import javafx.scene.image.PixelWriter;
 import javafx.scene.image.WritableImage;
 import javafx.scene.input.MouseEvent;
-import javafx.scene.layout.AnchorPane;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.paint.Color;
 import javafx.stage.FileChooser;
@@ -51,10 +52,12 @@ public class Controller implements Initializable, EventHandler<ActionEvent>{
 	private double endX=0;
 	private double endY=0;
 	
-	//private ToolSet ts;
+	private CoordinateDrawer cd = new CoordinateDrawer();
+	private ToolSet ts;
 	private GraphicsContext gc;
+	private SnapshotParameters sParameters = new SnapshotParameters();
 	private PixelReader pr;
-	public PixelWriter pw;
+	private PixelWriter pw;
 	private FileChooser imageDirectory = new FileChooser();
 	private ArrayList<WritableImage> canvasSnapshots = new ArrayList<WritableImage>();
 	private WritableImage dragSnapshot;
@@ -70,19 +73,68 @@ public class Controller implements Initializable, EventHandler<ActionEvent>{
 	@FXML private Button fillButton;
 	@FXML private Button undoButton;
 	@FXML private Button redoButton;
-	@FXML private AnchorPane canvasPane;
+	@FXML private Button cdButton;
+	@FXML private ScrollPane canvasPane;
 	@FXML private Canvas canvas;
 	@FXML private Label locator;
 	@FXML private ColorPicker colorPicker;
+	@FXML private TextField widthField;
+	@FXML private TextField heightField;
 	
 	@Override
 	public void initialize(URL arg0, ResourceBundle arg1) {
 		imageDirectory.setTitle("Choose your output directory");
 		canvasSnapshots.add(canvas.snapshot(null, null));
 		gc = canvas.getGraphicsContext2D();
+		//gc.setFill(Color.WHITE);
+		//gc.fillRect(0, 0, canvas.getWidth(), canvas.getHeight());
+		gc.setLineWidth(4);
 		pw = gc.getPixelWriter();
-		pr = canvas.snapshot(null, null).getPixelReader();
+		sParameters.setFill(Color.WHITE);
+		pr = canvas.snapshot(sParameters, null).getPixelReader();
 		gc.setImageSmoothing(false);
+		widthField.setText(""+(int)canvas.getWidth());
+		heightField.setText(""+(int)canvas.getHeight());
+		widthField.textProperty().addListener((property, oldValue, newValue) -> { 
+			try {
+				char lastChar = newValue.charAt(newValue.length()-1);
+				char firstChar = newValue.charAt(0);
+				if(!(lastChar=='0'||lastChar=='1'||lastChar=='2'||lastChar=='3'||lastChar=='4'||lastChar=='5'||lastChar=='6'||
+						lastChar=='7'||lastChar=='8'||lastChar=='9')) {
+					throw new NumberFormatException();
+				}
+				if(!(firstChar=='1'||firstChar=='2'||firstChar=='3'||firstChar=='4'||firstChar=='5'||firstChar=='6'||
+						firstChar=='7'||firstChar=='8'||firstChar=='9')) {
+					throw new NumberFormatException();
+				}
+				canvas.setWidth(Double.parseDouble(newValue));
+				pr = canvas.snapshot(sParameters, null).getPixelReader();
+			}catch(NumberFormatException e1) {
+				widthField.setText("600");
+			}catch(StringIndexOutOfBoundsException e2) {
+				//
+			}
+		});
+		heightField.textProperty().addListener((property, oldValue, newValue) -> {
+			try {
+				char lastChar = newValue.charAt(newValue.length()-1);
+				char firstChar = newValue.charAt(0);
+				if(!(lastChar=='0'||lastChar=='1'||lastChar=='2'||lastChar=='3'||lastChar=='4'||lastChar=='5'||lastChar=='6'||
+						lastChar=='7'||lastChar=='8'||lastChar=='9')) {
+					throw new NumberFormatException();
+				}
+				if(!(firstChar=='1'||firstChar=='2'||firstChar=='3'||firstChar=='4'||firstChar=='5'||firstChar=='6'||
+						firstChar=='7'||firstChar=='8'||firstChar=='9')) {
+					throw new NumberFormatException();
+				}
+				canvas.setHeight(Double.parseDouble(newValue));
+				pr = canvas.snapshot(sParameters, null).getPixelReader();
+			}catch(NumberFormatException e1) {
+				heightField.setText("400");
+			}catch(StringIndexOutOfBoundsException e2) {
+				//
+			}
+		});
 		
 		canvas.setCursor(Cursor.CROSSHAIR);
 		Image fillCursorImage = new Image(getClass().getResource("/resources/fillCursor.png").toString());
@@ -104,7 +156,12 @@ public class Controller implements Initializable, EventHandler<ActionEvent>{
 		redoImageView.setFitWidth(20);
 		redoImageView.setFitHeight(20);
 		redoButton.setGraphic(redoImageView);
-		//ts = new ToolSet(pw);
+		
+		ImageView lineImageView = new ImageView(new Image(getClass().getResource("/resources/buttonImages/line.png").toString()));
+		lineImageView.setFitWidth(20);
+		lineImageView.setFitHeight(20);
+		lineButton.setGraphic(lineImageView);
+		ts = new ToolSet(pw);
 	}
 	
 	public void listenForMovement(MouseEvent e) {
@@ -126,7 +183,7 @@ public class Controller implements Initializable, EventHandler<ActionEvent>{
 			drawOval(startX, startY, e.getX(), e.getY());
 		}else if(currentTool==TRIANGLE_DRAWER) {
 			gc.drawImage(dragSnapshot, 0, 0);
-			gc.strokePolygon(new double[] {startX+(e.getX()-startX)/2,e.getX(),startX}, new double[] {startY,e.getY(),e.getY()}, 3);
+			gc.fillPolygon(new double[] {startX+(e.getX()-startX)/2,e.getX(),startX}, new double[] {startY,e.getY(),e.getY()}, 3);
 		}
 	}
 	
@@ -138,22 +195,22 @@ public class Controller implements Initializable, EventHandler<ActionEvent>{
 			gc.setStroke(colorPicker.getValue());
 			gc.fillOval(startX-thickness/2, startY-thickness/2, thickness, thickness);
 		}else if(currentTool==LINE_DRAWER){
-			dragSnapshot = (canvas.snapshot(null, null));
+			dragSnapshot = (canvas.snapshot(sParameters, null));
 			gc.setStroke(colorPicker.getValue());
 			gc.setLineWidth(thickness);
 			
 		}else if(currentTool==RECTANGLE_DRAWER) {
-			dragSnapshot = (canvas.snapshot(null, null));
+			dragSnapshot = (canvas.snapshot(sParameters, null));
 			gc.setFill(colorPicker.getValue());
 			gc.setStroke(colorPicker.getValue());
 			
 		}else if(currentTool==OVAL_DRAWER) {
-			dragSnapshot = (canvas.snapshot(null, null));
+			dragSnapshot = (canvas.snapshot(sParameters, null));
 			gc.setFill(colorPicker.getValue());
 			gc.setStroke(colorPicker.getValue());
 			
 		}else if(currentTool==TRIANGLE_DRAWER) {
-			dragSnapshot = (canvas.snapshot(null, null));
+			dragSnapshot = (canvas.snapshot(sParameters, null));
 			gc.setFill(colorPicker.getValue());
 			gc.setStroke(colorPicker.getValue());
 		}else if(currentTool==FILL) {
@@ -176,13 +233,13 @@ public class Controller implements Initializable, EventHandler<ActionEvent>{
 				break;
 				
 			case TRIANGLE_DRAWER:
-				gc.strokePolygon(new double[] {startX+(endX-startX)/2,endX,startX}, new double[] {startY,endY,endY}, 3);
+				gc.fillPolygon(new double[] {startX+(endX-startX)/2,endX,startX}, new double[] {startY,endY,endY}, 3);
 				break;
 		}
 		if(undoCounter>0) {
 			clearSnapshots();
 		}
-		WritableImage snapshot = canvas.snapshot(null, null);
+		WritableImage snapshot = canvas.snapshot(sParameters, null);
 		canvasSnapshots.add(snapshot);
 		pr = snapshot.getPixelReader();
 		undoButton.setDisable(false);
@@ -212,9 +269,7 @@ public class Controller implements Initializable, EventHandler<ActionEvent>{
 	}
 	
 	private void saveAs(String format) {
-		SnapshotParameters sParameters = new SnapshotParameters();
-		sParameters.setFill(Color.TRANSPARENT);
-		WritableImage image = canvasPane.snapshot(sParameters, null);
+		WritableImage image = canvas.snapshot(sParameters, null);
 		File file = imageDirectory.showSaveDialog(rootPane.getScene().getWindow());
 		try {
 			ImageIO.write(SwingFXUtils.fromFXImage(image, null), format, file);
@@ -349,6 +404,10 @@ public class Controller implements Initializable, EventHandler<ActionEvent>{
 			fillButton.setDisable(true);
 			currentTool = FILL;
 			canvas.setCursor(fillCursor);
+		}else if(source.equals(widthField)) {
+			System.out.println("Action");
+		}else if(source.equals(cdButton)) {
+			cd.display();
 		}
 	}
 }

@@ -1,20 +1,25 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <?import javafx.scene.layout.BorderPane?>
 <?import javafx.scene.layout.VBox?>
+<?import javafx.scene.layout.HBox?>
 <?import javafx.scene.layout.GridPane?>
 <?import javafx.scene.layout.AnchorPane?>
+<?import javafx.scene.layout.RowConstraints?>
+<?import javafx.scene.layout.ColumnConstraints?>
+<?import javafx.scene.control.ScrollPane?>
 <?import javafx.scene.control.Label?>
 <?import javafx.scene.control.MenuBar?>
 <?import javafx.scene.control.Menu?>
 <?import javafx.scene.control.Button?>
 <?import javafx.scene.control.MenuItem?>
-<?import javafx.scene.canvas.Canvas?>
 <?import javafx.scene.control.ColorPicker?>
+<?import javafx.scene.control.TextField?>
+<?import javafx.scene.control.Tooltip?>
 <?import javafx.scene.paint.Color?>
-<?import javafx.scene.layout.RowConstraints?>
-<?import javafx.scene.layout.ColumnConstraints?>
 <?import javafx.geometry.VPos?>
 <?import javafx.geometry.HPos?>
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.canvas.Canvas?>
 
 <BorderPane xmlns:fx="http://javafx.com/fxml" 
 fx:controller="com.arabadzhiev.Controller"
@@ -44,7 +49,28 @@ stylesheets="resources/style.css">
 				</columnConstraints>
 				<children>
 					<GridPane GridPane.rowIndex="0" GridPane.columnIndex="0" styleClass="pane-with-border">
-					
+						<rowConstraints>
+							<RowConstraints percentHeight="20.0" valignment="CENTER"/>
+							<RowConstraints percentHeight="80.0" valignment="CENTER"/>
+						</rowConstraints>
+						<columnConstraints>
+							<ColumnConstraints percentWidth="100.0" halignment="CENTER"/>
+						</columnConstraints>
+						<children>
+							<Label GridPane.rowIndex="0" GridPane.columnIndex="0" text="Basic" styleClass="highlight-label"/>
+							<GridPane GridPane.rowIndex="1" GridPane.columnIndex="0">
+								<rowConstraints>
+									<RowConstraints percentHeight="50.0" valignment="CENTER"/>
+									<RowConstraints percentHeight="50.0" valignment="CENTER"/>
+								</rowConstraints>
+								<columnConstraints>
+									<ColumnConstraints percentWidth="100.0" halignment="CENTER"/>
+								</columnConstraints>
+								<children>
+									<Button GridPane.rowIndex="1" GridPane.columnIndex="0" text="Coordinate Drawer" fx:id="cdButton" onAction="#handle"/>
+								</children>
+							</GridPane>
+						</children>
 					</GridPane>
 					<GridPane GridPane.rowIndex="0" GridPane.columnIndex="1" styleClass="pane-with-border">
 						<rowConstraints>
@@ -62,8 +88,8 @@ stylesheets="resources/style.css">
 									<RowConstraints percentHeight="50.0" valignment="CENTER"/>
 								</rowConstraints>
 								<columnConstraints>
-									<ColumnConstraints percentWidth="50.0" halignment="CENTER"/>
-									<ColumnConstraints percentWidth="50.0" halignment="CENTER"/>
+									<ColumnConstraints percentWidth="50.0" halignment="RIGHT"/>
+									<ColumnConstraints percentWidth="50.0" halignment="LEFT"/>
 								</columnConstraints>
 								<children>
 									<Button GridPane.rowIndex="0" GridPane.columnIndex="0"  disable="true" onAction="#handle" fx:id="pencilButton"/>
@@ -93,7 +119,7 @@ stylesheets="resources/style.css">
 									<ColumnConstraints percentWidth="33.3" halignment="CENTER"/>
 								</columnConstraints>
 								<children>
-									<Button GridPane.rowIndex="0" GridPane.columnIndex="0" text="Line" onAction="#handle" fx:id="lineButton"/>
+									<Button GridPane.rowIndex="0" GridPane.columnIndex="0" onAction="#handle" fx:id="lineButton"/>
 									<Button GridPane.rowIndex="0" GridPane.columnIndex="1" text="Rectagle" onAction="#handle" fx:id="rectangleButton"/>
 									<Button GridPane.rowIndex="0" GridPane.columnIndex="2" text="Oval" onAction ="#handle" fx:id="ovalButton"/>
 									<Button GridPane.rowIndex="1" GridPane.columnIndex="0" text="Triangle" onAction="#handle" fx:id="triangleButton"/>
@@ -120,13 +146,15 @@ stylesheets="resources/style.css">
 					</GridPane>
 					<GridPane GridPane.rowIndex="0" GridPane.columnIndex="4">
 						<rowConstraints>
-							<RowConstraints percentHeight="100.0" valignment="CENTER"/>
+							<RowConstraints percentHeight="20.0" valignment="CENTER"/>
+							<RowConstraints percentHeight="80.0" valignment="CENTER"/>
 						</rowConstraints>
 						<columnConstraints>
 							<ColumnConstraints percentWidth="100.0" halignment="CENTER"/>
 						</columnConstraints>
 						<children>
-							<GridPane GridPane.rowIndex="0" GridPane.columnIndex="0">
+							<Label GridPane.rowIndex="0" GridPane.columnIndex="0" text="Controls:" styleClass="highlight-label"/>
+							<GridPane GridPane.rowIndex="1" GridPane.columnIndex="0">
 								<rowConstraints>
 									<RowConstraints percentHeight="100.0" valignment="CENTER"/>
 								</rowConstraints>
@@ -135,8 +163,12 @@ stylesheets="resources/style.css">
 									<ColumnConstraints percentWidth="50.0" halignment="CENTER"/>
 								</columnConstraints>
 								<children>
-									<Button GridPane.rowIndex="0" GridPane.columnIndex="0" onAction="#handle" disable="true" fx:id="undoButton"/>
-									<Button GridPane.rowIndex="0" GridPane.columnIndex="1" onAction="#handle" disable="true" fx:id="redoButton"/>
+									<Button GridPane.rowIndex="0" GridPane.columnIndex="0" onAction="#handle" disable="true" fx:id="undoButton">
+										<tooltip><Tooltip text="Undo"/></tooltip>
+									</Button>
+									<Button GridPane.rowIndex="0" GridPane.columnIndex="1" onAction="#handle" disable="true" fx:id="redoButton">
+										<tooltip><Tooltip text="Redo"/></tooltip>
+									</Button>
 								</children>
 							</GridPane>
 						</children>
@@ -146,15 +178,33 @@ stylesheets="resources/style.css">
 		</VBox>
 	</top>
 	<bottom>
-		<Label text="x:n/a y:n/a" fx:id = "locator"/>
+		<GridPane>
+			<rowConstraints>
+				<RowConstraints percentHeight="100.0" valignment="CENTER"/>
+			</rowConstraints>
+			<columnConstraints>
+				<ColumnConstraints percentWidth="50.0" halignment="LEFT"/>
+				<ColumnConstraints percentWidth="50.0" halignment="RIGHT"/>
+			</columnConstraints>
+			<children>
+				<Label GridPane.rowIndex="0" GridPane.columnIndex="0" text="x:n/a y:n/a" fx:id = "locator"/>
+				<HBox GridPane.rowIndex="0" GridPane.columnIndex="1" spacing="4" alignment="CENTER">	
+					<Label text="Size:"/>
+					<TextField maxWidth="50" onAction ="#handle" fx:id="widthField"/>
+					<Label text="x"/>
+					<TextField maxWidth="50" onAction ="#handle" fx:id="heightField"/>
+					<Label text="px"/>
+				</HBox>
+			</children>
+		</GridPane>
 	</bottom>
 	<center>
 		<AnchorPane style="-fx-background-color: #9faab7">
-			<AnchorPane style="-fx-background-color: white" fx:id="canvasPane">
+			<ScrollPane maxWidth="650.0" maxHeight="450.0" hbarPolicy="AS_NEEDED" vbarPolicy="AS_NEEDED" fx:id="canvasPane" >
 				<Canvas fx:id="canvas" width="600.0" height="400.0" onMouseMoved="#listenForMovement" 
 				onMousePressed="#listenForPress" onMouseReleased="#listenForRelease" onMouseDragged="#listenForDrag" 
 				pickOnBounds="true"/>
-			</AnchorPane>
+			</ScrollPane>
 		</AnchorPane>
 	</center>
 </BorderPane>
