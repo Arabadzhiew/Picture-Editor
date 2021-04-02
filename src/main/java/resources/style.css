@@ -19,4 +19,7 @@
 #main-pane{
 	-fx-background-color: gray;
 }
-
+#error-label{
+	-fx-text-alignment: center;
+	-fx-text-fill: #cc0000;
+}

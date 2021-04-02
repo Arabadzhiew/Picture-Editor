@@ -16,7 +16,15 @@ import javafx.stage.Stage;
 
 public class CoordinateDrawer {
 	
+	private boolean noExceptions;
+	private boolean emptyFields;
+	private boolean allTheSame;
+	private Label errorLabel;
+	
+	public boolean finishedSuccessfully;
+	
 	public int[] display(){
+		finishedSuccessfully = false;
 		int[] coordinates = new int[4];
 		Stage window = new Stage();
 		window.initModality(Modality.APPLICATION_MODAL);
@@ -26,28 +34,29 @@ public class CoordinateDrawer {
 		GridPane mainPane = new GridPane();
 		mainPane.setId("main-pane");
 		setRowConstraints(mainPane, 10.0, VPos.CENTER);
-		setRowConstraints(mainPane, 80.0, VPos.CENTER);
-		setRowConstraints(mainPane, 10.0, VPos.TOP);
+		setRowConstraints(mainPane, 65.0, VPos.CENTER);
+		setRowConstraints(mainPane, 25.0, VPos.TOP);
 		setColumnConstraints(mainPane, 100.0, HPos.CENTER);
-		Label messageLabel = new Label("Enter your coordinates bellow");
+		Label messageLabel = new Label("Enter the coordinates of your shape");
 		messageLabel.getStyleClass().add("highlight-label");
 		mainPane.add(messageLabel, 0, 0);
-		GridPane innerMainPane = new GridPane();
-		mainPane.add(innerMainPane, 0, 1);
-		Button drawButton = new Button("Draw");
-		mainPane.add(drawButton, 0, 2);
+		GridPane innerMainPane1 = new GridPane();
+		mainPane.add(innerMainPane1, 0, 1);
+		GridPane innerMainPane2 = new GridPane();
+		mainPane.add(innerMainPane2, 0, 2);
 		
-		setRowConstraints(innerMainPane, 100.0, VPos.CENTER);
-		setColumnConstraints(innerMainPane, 50.0, HPos.CENTER);
-		setColumnConstraints(innerMainPane, 50.0, HPos.CENTER);
+		setRowConstraints(innerMainPane1, 100.0, VPos.CENTER);
+		for(int i=0; i<2; i++) {
+			setColumnConstraints(innerMainPane1, 100.0/2, HPos.CENTER);
+		}
 		GridPane startPane = new GridPane();
-		innerMainPane.add(startPane, 0, 0);
+		innerMainPane1.add(startPane, 0, 0);
 		GridPane endPane = new GridPane();
-		innerMainPane.add(endPane, 1, 0);
+		innerMainPane1.add(endPane, 1, 0);
 		
-		setRowConstraints(startPane, 33.3, VPos.CENTER);
-		setRowConstraints(startPane, 33.3, VPos.CENTER);
-		setRowConstraints(startPane, 33.3, VPos.CENTER);
+		for(int i = 0; i<3; i++) {
+			setRowConstraints(startPane, 100.0/3, VPos.CENTER);
+		}
 		setColumnConstraints(startPane, 100.0, HPos.CENTER);
 		Label startLabel = new Label("Start");
 		startLabel.getStyleClass().add("highlight-label");
@@ -69,9 +78,9 @@ public class CoordinateDrawer {
 		startYBox.getChildren().addAll(startYLabel,startYField);
 		startPane.add(startYBox, 0, 2);
 		
-		setRowConstraints(endPane, 33.3, VPos.CENTER);
-		setRowConstraints(endPane, 33.3, VPos.CENTER);
-		setRowConstraints(endPane, 33.3, VPos.CENTER);
+		for(int i = 0; i<3; i++) {
+			setRowConstraints(endPane, 100.0/3, VPos.CENTER);
+		}
 		setColumnConstraints(endPane, 100.0, HPos.CENTER);
 		Label endLabel = new Label("End");
 		endLabel.getStyleClass().add("highlight-label");
@@ -93,6 +102,35 @@ public class CoordinateDrawer {
 		endYBox.getChildren().addAll(endYLabel,endYField);
 		endPane.add(endYBox, 0, 2);
 		
+		for(int i = 0; i<2; i++) {
+			setRowConstraints(innerMainPane2, 100.0/2, VPos.CENTER);
+		}
+		setColumnConstraints(innerMainPane2, 100.0, HPos.CENTER);
+		errorLabel = new Label();
+		errorLabel.setId("error-label");
+		innerMainPane2.add(errorLabel, 0, 0);
+		Button drawButton = new Button("Draw");
+		innerMainPane2.add(drawButton, 0, 1);
+		
+		drawButton.setOnAction(e->{
+			noExceptions = true;
+			emptyFields = false;
+			allTheSame = false;
+			coordinates[0] = parseFromTextField(startXField);
+			coordinates[1] = parseFromTextField(startYField);
+			coordinates[2] = parseFromTextField(endXField);
+			coordinates[3] = parseFromTextField(endYField);
+			if(coordinates[0]==coordinates[2]&&coordinates[1]==coordinates[3]) {
+				allTheSame = true;
+			}
+			if(noExceptions&&!allTheSame) {
+				window.close();
+				finishedSuccessfully=true;
+			}else if(allTheSame&&noExceptions) {
+				errorLabel.setText("Your coordinates can not be the same!");
+			}
+		});
+		
 		Scene scene = new Scene(mainPane,350,300);
 		scene.getStylesheets().add(getClass().getResource("/resources/style.css").toExternalForm());
 		window.setScene(scene);
@@ -113,6 +151,44 @@ public class CoordinateDrawer {
 		cc.setPercentWidth(percentWidth);
 		cc.setHalignment(hAlignment);
 		gp.getColumnConstraints().add(cc);
+	}
+	
+	private int parseFromTextField(TextField tf) {
+		int returnInt = 0;
+		try {
+			String value = tf.getText();
+			char firstChar = value.charAt(0);
+			NumberFormatException nb = new NumberFormatException();
+			if(value.length()==1) {
+				if(!(firstChar=='0'||firstChar=='1'||firstChar=='2'||firstChar=='3'||firstChar=='4'||firstChar=='5'||firstChar=='6'||
+						firstChar=='7'||firstChar=='8'||firstChar=='9')) {
+					throw nb;
+				}
+			}else {
+				if(!(firstChar=='1'||firstChar=='2'||firstChar=='3'||firstChar=='4'||firstChar=='5'||firstChar=='6'||
+						firstChar=='7'||firstChar=='8'||firstChar=='9')) {
+					throw nb;
+				}
+			}
+			for(int i =1; i< value.length();i++) {
+				char currentChar = value.charAt(i);
+				if(!(currentChar=='0'||currentChar=='1'||currentChar=='2'||currentChar=='3'||currentChar=='4'||
+						currentChar=='5'||currentChar=='6'||currentChar=='7'||currentChar=='8'||currentChar=='9')) {
+					throw nb;
+				}
+			}
+			returnInt = Integer.parseInt(value);
+		}catch(NumberFormatException e) {
+			noExceptions=false;
+			if(!emptyFields) {
+				errorLabel.setText("Please enter valid coordinates!");
+			}
+		}catch(StringIndexOutOfBoundsException e2) {
+			noExceptions=false;
+			emptyFields=true;
+			errorLabel.setText("You have empty coordinate field/s!");
+		}
+		return returnInt;
 	}
 
 }

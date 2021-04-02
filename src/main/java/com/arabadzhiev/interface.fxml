@@ -67,7 +67,20 @@ stylesheets="resources/style.css">
 									<ColumnConstraints percentWidth="100.0" halignment="CENTER"/>
 								</columnConstraints>
 								<children>
-									<Button GridPane.rowIndex="1" GridPane.columnIndex="0" text="Coordinate Drawer" fx:id="cdButton" onAction="#handle"/>
+									<GridPane GridPane.rowIndex="0" GridPane.columnIndex="0">
+										<rowConstraints>
+											<RowConstraints percentHeight="100.0" valignment="CENTER"/>
+										</rowConstraints>
+										<columnConstraints>
+											<ColumnConstraints percentWidth="50.0" halignment="RIGHT"/>
+											<ColumnConstraints percentWidth="50.0" halignment="LEFT"/>
+										</columnConstraints>
+										<children>
+											<Button GridPane.rowIndex="0" GridPane.columnIndex="0" text="Crop" fx:id="cropButton" onAction="#handle"/>
+											<Button GridPane.rowIndex="0" GridPane.columnIndex="1" text="Drop" fx:id="scissionButton" onAction="#handle"/>
+										</children>
+									</GridPane>
+									<Button GridPane.rowIndex="1" GridPane.columnIndex="0" text="Coordinate Drawer" disable="true" fx:id="cdButton" onAction="#handle"/>
 								</children>
 							</GridPane>
 						</children>
@@ -84,8 +97,8 @@ stylesheets="resources/style.css">
 							<Label GridPane.rowIndex="0" GridPane.columnIndex="0" text="Tools" styleClass="highlight-label"/>
 							<GridPane GridPane.rowIndex="1" GridPane.columnIndex="0">
 								<rowConstraints>
-									<RowConstraints percentHeight="50.0" valignment="CENTER"/>
-									<RowConstraints percentHeight="50.0" valignment="CENTER"/>
+									<RowConstraints percentHeight="50.0" valignment="BOTTOM"/>
+									<RowConstraints percentHeight="50.0" valignment="TOP"/>
 								</rowConstraints>
 								<columnConstraints>
 									<ColumnConstraints percentWidth="50.0" halignment="RIGHT"/>
@@ -94,6 +107,8 @@ stylesheets="resources/style.css">
 								<children>
 									<Button GridPane.rowIndex="0" GridPane.columnIndex="0"  disable="true" onAction="#handle" fx:id="pencilButton"/>
 									<Button GridPane.rowIndex="0" GridPane.columnIndex="1"  onAction="#handle" fx:id="fillButton"/>
+									<Button GridPane.rowIndex="1" GridPane.columnIndex="0" onAction="#handle" fx:id="textButton"/>
+									<Button GridPane.rowIndex="1" GridPane.columnIndex="1" onAction="#handle" fx:id="pipetteButton"/>
 								</children>
 							</GridPane>
 						</children>
@@ -114,15 +129,17 @@ stylesheets="resources/style.css">
 									<RowConstraints percentHeight="50.0" valignment="CENTER"/>
 								</rowConstraints>
 								<columnConstraints>
-									<ColumnConstraints percentWidth="33.3" halignment="CENTER"/>
-									<ColumnConstraints percentWidth="33.3" halignment="CENTER"/>
-									<ColumnConstraints percentWidth="33.3" halignment="CENTER"/>
+									<ColumnConstraints percentWidth="100.0" halignment="CENTER"/>
 								</columnConstraints>
 								<children>
-									<Button GridPane.rowIndex="0" GridPane.columnIndex="0" onAction="#handle" fx:id="lineButton"/>
-									<Button GridPane.rowIndex="0" GridPane.columnIndex="1" text="Rectagle" onAction="#handle" fx:id="rectangleButton"/>
-									<Button GridPane.rowIndex="0" GridPane.columnIndex="2" text="Oval" onAction ="#handle" fx:id="ovalButton"/>
-									<Button GridPane.rowIndex="1" GridPane.columnIndex="0" text="Triangle" onAction="#handle" fx:id="triangleButton"/>
+									<HBox GridPane.rowIndex="0" GridPane.columnIndex="0" alignment ="BOTTOM_CENTER">
+										<Button GridPane.rowIndex="0" GridPane.columnIndex="0" onAction="#handle" fx:id="lineButton"/>
+										<Button GridPane.rowIndex="0" GridPane.columnIndex="1" onAction="#handle" fx:id="rectangleButton"/>
+										<Button GridPane.rowIndex="0" GridPane.columnIndex="2" onAction ="#handle" fx:id="ovalButton"/>
+									</HBox>
+									<HBox GridPane.rowIndex="1" GridPane.columnIndex="0" alignment ="TOP_CENTER">
+										<Button GridPane.rowIndex="1" GridPane.columnIndex="0" onAction="#handle" fx:id="triangleButton"/>
+									</HBox>
 								</children>
 							</GridPane>
 						</children>
