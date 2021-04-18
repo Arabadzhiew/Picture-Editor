@@ -26,6 +26,7 @@ import javafx.scene.control.ColorPicker;
 import javafx.scene.control.Label;
 import javafx.scene.control.MenuItem;
 import javafx.scene.control.ScrollPane;
+import javafx.scene.control.TextArea;
 import javafx.scene.control.TextField;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
@@ -33,6 +34,7 @@ import javafx.scene.image.PixelReader;
 import javafx.scene.image.PixelWriter;
 import javafx.scene.image.WritableImage;
 import javafx.scene.input.MouseEvent;
+import javafx.scene.layout.AnchorPane;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.paint.Color;
 import javafx.stage.FileChooser;
@@ -44,11 +46,12 @@ public class Controller implements Initializable, EventHandler<ActionEvent>{
 	private final int PENCIL = 4;
 	private final int FILL = 5;
 	private final int TEXT = 6;
-	private final int PIPETTE = 7;
-	private final int LINE_DRAWER = 8;
-	private final int RECTANGLE_DRAWER = 9;
-	private final int OVAL_DRAWER = 10;
-	private final int TRIANGLE_DRAWER = 11;
+	private final int TEXT_EDIT = 7;
+	private final int PIPETTE = 8;
+	private final int LINE_DRAWER = 9;
+	private final int RECTANGLE_DRAWER = 10;
+	private final int OVAL_DRAWER = 11;
+	private final int TRIANGLE_DRAWER = 12;
 	
 	private int currentTool = PENCIL;
 	private double thickness = 2;
@@ -62,18 +65,21 @@ public class Controller implements Initializable, EventHandler<ActionEvent>{
 	
 	private CoordinateDrawer cd = new CoordinateDrawer();
 	private ToolSet ts;
-	private GraphicsContext gc;
-	private SnapshotParameters sParameters = new SnapshotParameters();
 	private PixelReader pr;
 	private PixelWriter pw;
 	private FileChooser imageDirectory = new FileChooser();
-	private ArrayList<WritableImage> canvasSnapshots = new ArrayList<WritableImage>();
-	private WritableImage rubberBandSnapshot;
 	private WritableImage cropImage;
 	private ImageCursor fillCursor;
 	private ImageCursor pipetteCursor;
-	private Rectangle2D rubberBandBounds;
-	private boolean insideRBBounds;
+	private CanvasTextBrains ctBrains;
+	
+	public GraphicsContext gc;
+	public WritableImage rubberBandSnapshot;
+	public SnapshotParameters sParameters = new SnapshotParameters();
+	public ArrayList<WritableImage> canvasSnapshots = new ArrayList<WritableImage>();
+	public Rectangle2D rubberBandBounds;
+	public TextArea canvasText = new TextArea();
+	public boolean firstSnapshot;
 	
 	@FXML private BorderPane rootPane;
 	@FXML private MenuItem saveItem;
@@ -90,12 +96,15 @@ public class Controller implements Initializable, EventHandler<ActionEvent>{
 	@FXML private Button triangleButton;
 	@FXML private Button undoButton;
 	@FXML private Button redoButton;
-	@FXML private ScrollPane canvasPane;
+	@FXML private AnchorPane canvasAnchor;
+	@FXML private ScrollPane canvasSnapshotAnchor;
 	@FXML private Canvas canvas;
 	@FXML private Label locator;
-	@FXML private ColorPicker colorPicker;
 	@FXML private TextField widthField;
 	@FXML private TextField heightField;
+	
+	@FXML public ScrollPane canvasPane;
+	@FXML public  ColorPicker colorPicker;
 	
 	private ArrayList<Button> linkedButtons = new ArrayList<Button>();
 	
@@ -106,17 +115,22 @@ public class Controller implements Initializable, EventHandler<ActionEvent>{
 		gc = canvas.getGraphicsContext2D();
 		//gc.setFill(Color.WHITE);
 		//gc.fillRect(0, 0, canvas.getWidth(), canvas.getHeight());
-		//gc.setLineWidth(4);
+		//gc.setLineWidth(2);
 		pw = gc.getPixelWriter();
 		sParameters.setFill(Color.WHITE);
 		pr = canvas.snapshot(sParameters, null).getPixelReader();
-		gc.setImageSmoothing(false);
+		ctBrains = new CanvasTextBrains(this);
+		canvasText.setOnMouseMoved(ctBrains.mouseMoved);
+		canvasText.addEventFilter(MouseEvent.MOUSE_PRESSED, ctBrains.mousePressed);
+		canvasText.setOnMouseReleased(ctBrains.mouseReleased);
+		canvasText.setOnMouseDragged(ctBrains.mouseDragged);
+		canvasText.setStyle("-fx-text-fill: "+getColorHex(colorPicker.getValue()));
 		widthField.setText(""+(int)canvas.getWidth());
 		heightField.setText(""+(int)canvas.getHeight());
 		widthField.textProperty().addListener((property, oldValue, newValue) -> { 
 			int parsedNewVal = parseFromTextField(widthField,newValue,600);
-			if(parsedNewVal!=0&&canvas.getWidth()!=parsedNewVal) {	
-				System.out.println("width");
+			if(parsedNewVal!=0&&canvas.getWidth()!=parsedNewVal) {
+				canvasSnapshotAnchor.setPrefWidth(parsedNewVal);
 				canvas.setWidth(parsedNewVal);
 				WritableImage resizeSnapshot = canvas.snapshot(sParameters, null);
 				canvasSnapshots.add(resizeSnapshot);
@@ -126,12 +140,19 @@ public class Controller implements Initializable, EventHandler<ActionEvent>{
 		heightField.textProperty().addListener((property, oldValue, newValue) -> {
 			int parsedNewVal = parseFromTextField(heightField,newValue,400);
 			if(parsedNewVal!=0&&canvas.getHeight()!=parsedNewVal) {
-				System.out.println("height");
+				canvasSnapshotAnchor.setPrefHeight(parsedNewVal);
 				canvas.setHeight(parsedNewVal);
 				WritableImage resizeSnapshot = canvas.snapshot(sParameters, null);
 				canvasSnapshots.add(resizeSnapshot);
 				pr = canvas.snapshot(sParameters, null).getPixelReader();
 			}
+		});
+		colorPicker.valueProperty().addListener((property, olvValue, newValue)->{
+			if(canvasAnchor.getChildren().contains(canvasText)) {
+				String hex = getColorHex(newValue);
+				canvasText.setStyle("-fx-text-fill: "+hex);
+			}
+			
 		});
 		
 		canvas.setCursor(Cursor.CROSSHAIR);
@@ -209,36 +230,72 @@ public class Controller implements Initializable, EventHandler<ActionEvent>{
 					canvas.setCursor(Cursor.CROSSHAIR);
 				}
 			}
+		}else if(currentTool==TEXT_EDIT) {
+			double minX = rubberBandBounds.getMinX();
+			double minY = rubberBandBounds.getMinY();
+			double maxX = rubberBandBounds.getMaxX();
+			double maxY = rubberBandBounds.getMaxY();
+			if((e.getX()>=minX-5&&e.getX()<=minX&&e.getY()>=minY-5&&e.getY()<=maxY+5)||
+					(e.getY()>=minY-5&&e.getY()<=minY&&e.getX()>=minX-5&&e.getX()<=maxX+5)||
+					(e.getX()>=maxX&&e.getX()<=maxX+5&&e.getY()>=minY-5&&e.getY()<=maxY+5)||
+					(e.getY()>=maxY&&e.getY()<=maxY+5&&e.getX()>=minX-5&&e.getX()<=maxX+5)){
+				if(!canvas.getCursor().equals(Cursor.MOVE)) {
+					canvas.setCursor(Cursor.MOVE);
+				}
+			}else {
+				if(!canvas.getCursor().equals(Cursor.TEXT)) {
+					canvas.setCursor(Cursor.TEXT);
+				}
+			}
 		}else if(!(currentTool==FILL)&&!(currentTool==PIPETTE)&&!(currentTool==TEXT)){
 			if(!canvas.getCursor().equals(Cursor.CROSSHAIR)) {
 				canvas.setCursor(Cursor.CROSSHAIR);
+			}
+		}else if(currentTool==TEXT) {
+			if(!canvas.getCursor().equals(Cursor.TEXT)) {
+				canvas.setCursor(Cursor.TEXT);
 			}
 		}
 	}
 	public void listenForDrag(MouseEvent e) {
 		locator.setText("x:" + e.getX() + " y:" + e.getY());
 		if(currentTool==CROP) {
+			gc.setStroke(Color.RED);
+			gc.setLineDashes(4);
 			rubberBand(startX, startY, e.getX(), e.getY());
 		}else if(currentTool==MOVE) {
-			if(insideRBBounds) {
-				gc.drawImage(rubberBandSnapshot, 0, 0);
-				double minX = e.getX()-lastX+rubberBandBounds.getMinX();
-				double minY = e.getY()-lastY+rubberBandBounds.getMinY();
-				double maxX = e.getX()-lastX+rubberBandBounds.getMaxX();
-				double maxY = e.getY()-lastY+rubberBandBounds.getMaxY();
-				lastX=e.getX();
-				lastY=e.getY();
-				rubberBandBounds = new Rectangle2D(minX,minY,maxX-minX,maxY-minY);
-				gc.drawImage(cropImage, minX,minY);
-				gc.setLineDashes(20);
-				drawRectangle(minX, minY, maxX, maxY, false);
-				gc.setLineDashes(null);
-			}
-			
+			gc.drawImage(rubberBandSnapshot, 0, 0);
+			double minX = e.getX()-lastX+rubberBandBounds.getMinX();
+			double minY = e.getY()-lastY+rubberBandBounds.getMinY();
+			lastX=e.getX();
+			lastY=e.getY();
+			rubberBandBounds = new Rectangle2D(minX,minY,cropImage.getWidth(),cropImage.getHeight());
+			gc.drawImage(cropImage, minX,minY);
 		}else if(currentTool==SCISSION) {
+			gc.setStroke(Color.RED);
+			gc.setLineDashes(4);
 			rubberBand(startX, startY, e.getX(), e.getY());
 		}else if(currentTool==PENCIL) {
 			gc.fillOval(e.getX()-thickness/2, e.getY()-thickness/2, thickness, thickness);
+		}else if(currentTool==TEXT) {
+			gc.setStroke(Color.RED);
+			gc.setLineDashes(4);
+			rubberBand(startX,startY,e.getX(),e.getY());
+		}else if(currentTool==TEXT_EDIT) {
+			if(!canvasText.getSelectedText().equals("")) {
+				canvasText.deselect();
+			}
+			if(!firstSnapshot) {
+				firstSnapshot=true;
+			}
+			gc.drawImage(rubberBandSnapshot, 0, 0);
+			double minX = e.getX()-lastX+rubberBandBounds.getMinX();
+			double minY = e.getY()-lastY+rubberBandBounds.getMinY();
+			lastX=e.getX();
+			lastY=e.getY();
+			rubberBandBounds = new Rectangle2D(minX,minY,canvasText.getMinWidth(),canvasText.getMinHeight());
+			canvasText.setLayoutX(minX);
+			canvasText.setLayoutY(minY);
 		}else if(currentTool==LINE_DRAWER) {
 			gc.drawImage(rubberBandSnapshot, 0, 0);
 			gc.strokeLine(startX, startY, e.getX(), e.getY());
@@ -260,32 +317,71 @@ public class Controller implements Initializable, EventHandler<ActionEvent>{
 		lastX = e.getX();
 		lastY = e.getY();
 		if(currentTool==CROP) {
-			rubberBandSnapshot = (canvas.snapshot(sParameters, null));
+			rubberBandSnapshot = canvas.snapshot(sParameters, null);
 		}else if(currentTool==MOVE) {
 			if(e.getX()>=rubberBandBounds.getMinX()&&e.getX()<=rubberBandBounds.getMaxX()&&
 					e.getY()>=rubberBandBounds.getMinY()&&e.getY()<=rubberBandBounds.getMaxY()) {
-				insideRBBounds=true;
 				canvas.setCursor(Cursor.CLOSED_HAND);
 			}else {
-				insideRBBounds=false;
-				gc.setStroke(Color.RED);
-				gc.setLineDashes(20);
 				gc.drawImage(rubberBandSnapshot, 0, 0);
 				gc.drawImage(cropImage, rubberBandBounds.getMinX(), rubberBandBounds.getMinY());
-				rubberBandSnapshot = (canvas.snapshot(sParameters, null));
+				rubberBandSnapshot = canvas.snapshot(sParameters, null);
 				currentTool=CROP;
 			}
 		}else if(currentTool==SCISSION) {
-			rubberBandSnapshot = (canvas.snapshot(sParameters, null));
+			rubberBandSnapshot = canvas.snapshot(sParameters, null);
 		}else if(currentTool==PENCIL) {
 			gc.setFill(colorPicker.getValue());
 			gc.setStroke(colorPicker.getValue());
 			gc.fillOval(startX-thickness/2, startY-thickness/2, thickness, thickness);
+		}else if(currentTool==FILL) {
+			fill((int)e.getX(),(int)e.getY(),pr.getColor((int)e.getX(),(int)e.getY()),colorPicker.getValue());	
+		}else if(currentTool==TEXT) {
+			rubberBandSnapshot = canvas.snapshot(sParameters, null);
+		}else if(currentTool==TEXT_EDIT) {
+			double minX = rubberBandBounds.getMinX();
+			double minY = rubberBandBounds.getMinY();
+			double maxX = rubberBandBounds.getMaxX();
+			double maxY = rubberBandBounds.getMaxY();
+			if((e.getX()>=minX-5&&e.getX()<=minX&&e.getY()>=minY-5&&e.getY()<=maxY+5)||
+					(e.getY()>=minY-5&&e.getY()<=minY&&e.getX()>=minX-5&&e.getX()<=maxX+5)||
+					(e.getX()>=maxX&&e.getX()<=maxX+5&&e.getX()>=minX-5&&e.getX()<=maxX+5)||
+					(e.getY()>=maxY&&e.getY()<=maxY+5&&e.getY()>=minY-5&&e.getY()<=maxY+5)){
+				if(!firstSnapshot) {
+					firstSnapshot=true;
+					gc.drawImage(rubberBandSnapshot, 0, 0);
+					if(undoCounter>0) {
+						clearSnapshots();
+					}
+					WritableImage snapshot = canvasSnapshotAnchor.snapshot(sParameters, null);
+					canvasSnapshots.add(snapshot);
+					pr = snapshot.getPixelReader();
+					undoButton.setDisable(false);
+				}
+				canvas.setCursor(Cursor.CLOSED_HAND);
+			}else{
+				gc.drawImage(rubberBandSnapshot, 0, 0);
+				if(undoCounter>0) {
+					clearSnapshots();
+				}
+				canvasText.setStyle("-fx-display-caret: false; " + "-fx-text-fill: " + getColorHex(colorPicker.getValue()));
+				WritableImage snapshot = canvasSnapshotAnchor.snapshot(sParameters, null);
+				canvasText.setStyle("-fx-text-fill: " + getColorHex(colorPicker.getValue()));
+				canvasSnapshots.add(snapshot);
+				pr = snapshot.getPixelReader();
+				undoButton.setDisable(false);
+				gc.drawImage(snapshot, 0, 0);
+				canvasAnchor.getChildren().remove(canvasText);
+				rubberBandSnapshot = canvas.snapshot(sParameters, null);
+				currentTool=TEXT;
+			}
+			
+		}else if(currentTool==PIPETTE) {
+			colorPicker.setValue(pr.getColor((int)e.getX(), (int)e.getY()));
 		}else if(currentTool==LINE_DRAWER){
 			rubberBandSnapshot = (canvas.snapshot(sParameters, null));
 			gc.setStroke(colorPicker.getValue());
 			gc.setLineWidth(thickness);
-			
 		}else if(currentTool==RECTANGLE_DRAWER) {
 			rubberBandSnapshot = (canvas.snapshot(sParameters, null));
 			gc.setFill(colorPicker.getValue());
@@ -300,21 +396,19 @@ public class Controller implements Initializable, EventHandler<ActionEvent>{
 			rubberBandSnapshot = (canvas.snapshot(sParameters, null));
 			gc.setFill(colorPicker.getValue());
 			gc.setStroke(colorPicker.getValue());
-		}else if(currentTool==FILL) {
-			fill((int)e.getX(),(int)e.getY(),pr.getColor((int)e.getX(),(int)e.getY()),colorPicker.getValue());
 		}
 	}	
 	
 	public void listenForRelease(MouseEvent e) {
 		endX = e.getX();
 		endY = e.getY();
-		boolean croppedSomething = false;
-		//shapeDrawer(startX, startY, endX, endY, false);
+		boolean createdCrop = false;
+		boolean createdText = false;
 		if(currentTool==CROP) {
 			gc.drawImage(rubberBandSnapshot, 0, 0);
 			if(endX-startX!=0&&endY-startY!=0) {
 				crop(startX, startY, endX, endY, true);
-				croppedSomething = true;
+				createdCrop = true;
 			}
 		}else if(currentTool==MOVE) {
 			canvas.setCursor(Cursor.MOVE);
@@ -322,9 +416,51 @@ public class Controller implements Initializable, EventHandler<ActionEvent>{
 			if(endX-startX!=0&&endY-startY!=0) {
 				crop(startX, startY, endX, endY, false);
 			}
+		}else if(currentTool==TEXT) {
+			gc.drawImage(rubberBandSnapshot, 0, 0);
+			if(endX-startX!=0&&endY-startY!=0) {
+				if(endX-startX<0&&endY-startY<0) {
+					canvasText.setLayoutX(endX);
+					canvasText.setLayoutY(endY);
+					canvasText.setMinSize(startX-endX, startY-endY);
+					canvasText.setMaxSize(startX-endX, startY-endY);
+				}else if(endX-startX<0&&endY-startY>=0) {
+					canvasText.setLayoutX(endX);
+					canvasText.setLayoutY(startY);
+					canvasText.setMinSize(startX-endX, endY-startY);
+					canvasText.setMaxSize(startX-endX, endY-startY);
+				}else if(endX-startX>=0&&endY-startY<0) {
+					canvasText.setLayoutX(startX);
+					canvasText.setLayoutY(endY);
+					canvasText.setMinSize(endX-startX, startY-endY);
+					canvasText.setMaxSize(endX-startX, startY-endY);
+				}else {
+					canvasText.setLayoutX(startX);
+					canvasText.setLayoutY(startY);
+					canvasText.setMinSize(endX-startX, endY-startY);
+					canvasText.setMaxSize(endX-startX, endY-startY);
+				}
+				rubberBandBounds = new Rectangle2D(canvasText.getLayoutX(),canvasText.getLayoutY(),canvasText.getMinWidth(),canvasText.getMinHeight());
+				canvasText.setText("");
+				if(!canvasAnchor.getChildren().contains(canvasText)) {
+					canvasAnchor.getChildren().add(canvasText);
+				}
+				canvasText.requestFocus();
+				gc.setStroke(Color.GREEN);
+				drawRectangle(startX, startY, endX, endY, false);
+				createdText=true;
+			}
+		}else if(currentTool==TEXT_EDIT) {
+			if(!firstSnapshot) {
+				canvasSnapshots.remove(canvasSnapshots.size()-1);
+			}
+			gc.setLineDashes(4);
+			gc.setStroke(Color.GREEN);
+			rubberBand(rubberBandBounds.getMinX(), rubberBandBounds.getMinY(), rubberBandBounds.getMaxX(), rubberBandBounds.getMaxY());
+			canvas.setCursor(Cursor.MOVE);
 		}
 		
-		if((!(startX==endX&&startY==endY)&&!(currentTool==CROP))||currentTool==FILL) {
+		if((!(startX==endX&&startY==endY)&&!(currentTool==CROP)&&!(currentTool==TEXT)&&!(currentTool==TEXT_EDIT))||currentTool==FILL) {
 			if(currentTool==MOVE) {
 				gc.drawImage(rubberBandSnapshot, 0, 0);
 				gc.drawImage(cropImage, rubberBandBounds.getMinX(), rubberBandBounds.getMinY());
@@ -337,12 +473,67 @@ public class Controller implements Initializable, EventHandler<ActionEvent>{
 			pr = snapshot.getPixelReader();
 			undoButton.setDisable(false);
 			if(currentTool==MOVE) {
-				gc.setLineDashes(20);
+				gc.setLineDashes(4);
 				drawRectangle(rubberBandBounds.getMinX(), rubberBandBounds.getMinY(), rubberBandBounds.getMaxX(), rubberBandBounds.getMaxY(), false);
-				gc.setLineDashes(null);
 			}
 		}
-		if(currentTool==CROP&&croppedSomething) currentTool=MOVE;
+		
+		if(currentTool==TEXT_EDIT&&!canvasText.getText().equals("")&&startX!=endX&&startY!=endY) {
+			gc.drawImage(rubberBandSnapshot, 0, 0);
+			if(undoCounter>0) {
+				clearSnapshots();
+			}
+			WritableImage snapshot = canvasSnapshotAnchor.snapshot(sParameters, null);
+			drawRectangle(rubberBandBounds.getMinX(), rubberBandBounds.getMinY(), rubberBandBounds.getMaxX(), rubberBandBounds.getMaxY(), false);
+			canvasSnapshots.add(snapshot);
+			pr = snapshot.getPixelReader();
+			undoButton.setDisable(false);
+		}
+		
+		if(currentTool==CROP&&createdCrop) {
+			currentTool=MOVE;
+		}else if(currentTool==TEXT&&createdText) {
+			currentTool=TEXT_EDIT;
+			firstSnapshot=false;
+		}
+		
+		if(gc.getLineDashes()!=null) {
+			gc.setLineDashes(null);
+		}
+	}
+	
+	public void addNewSnapshot() {
+		if(undoCounter>0) {
+			clearSnapshots();
+		}
+		WritableImage snapshot = canvasPane.snapshot(sParameters, null);
+		canvasSnapshots.add(snapshot);
+		pr = snapshot.getPixelReader();
+		undoButton.setDisable(false);
+	}
+	
+	public String getColorHex(Color color) {
+		String hex = "#";
+		for(int i=2; i<8; i++) {
+			hex = hex + color.toString().charAt(i);
+		}
+		return hex;
+	}
+	
+	public void rubberBand(double startX, double startY, double endX, double endY) {
+		if(endX<0) {
+			endX=0;
+		}else if(endX>canvas.getWidth()) {
+			endX=canvas.getWidth();
+		}
+		
+		if(endY<0) {
+			endY=0;
+		}else if(endY>canvas.getHeight()) {
+			endY=canvas.getHeight();
+		}
+		gc.drawImage(rubberBandSnapshot, 0, 0);
+		drawRectangle(startX, startY, endX, endY, false);
 	}
 	
 	private int parseFromTextField(TextField tf, String value, int backupValue) {
@@ -370,28 +561,10 @@ public class Controller implements Initializable, EventHandler<ActionEvent>{
 		return returnInt;
 	}
 	
-	private void rubberBand(double startX, double startY, double endX, double endY) {
-		if(endX<0) {
-			endX=0;
-		}else if(endX>canvas.getWidth()) {
-			endX=canvas.getWidth();
-		}
-		
-		if(endY<0) {
-			endY=0;
-		}else if(endY>canvas.getHeight()) {
-			endY=canvas.getHeight();
-		}
-		gc.drawImage(rubberBandSnapshot, 0, 0);
-		gc.setStroke(Color.RED);
-		gc.setLineDashes(20);
-		drawRectangle(startX, startY, endX, endY, false);
-	}
-	
 	private void crop(double startX, double startY, double endX, double endY, boolean fullCrop) {
 		if(endX<0) {
 			endX=0;
-		}else if(endX>=canvas.getWidth()) {
+		}else if(endX>canvas.getWidth()) {
 			endX=canvas.getWidth();
 		}
 		
@@ -439,14 +612,15 @@ public class Controller implements Initializable, EventHandler<ActionEvent>{
 		}
 		if(!fullCrop) {
 			gc.drawImage(cropImage, 0, 0);
+			canvasSnapshotAnchor.setPrefWidth(cropImage.getWidth());
 			canvas.setWidth(cropImage.getWidth());
+			canvasSnapshotAnchor.setPrefHeight(cropImage.getHeight());
 			canvas.setHeight(cropImage.getHeight());
 			widthField.setText(""+(int)cropImage.getWidth());
 			heightField.setText(""+(int)cropImage.getHeight());
 		}else if(fullCrop) {
 			gc.setStroke(Color.GREEN);
 			drawRectangle(startX, startY, endX, endY, false);
-			gc.setLineDashes(null);
 		}
 	}
 	
@@ -515,10 +689,10 @@ public class Controller implements Initializable, EventHandler<ActionEvent>{
 	}
 	
 	private void saveAs(String format) {
-		WritableImage image = canvas.snapshot(sParameters, null);
+		WritableImage snapshot = canvas.snapshot(sParameters, null);
 		File file = imageDirectory.showSaveDialog(rootPane.getScene().getWindow());
 		try {
-			ImageIO.write(SwingFXUtils.fromFXImage(image, null), format, file);
+			ImageIO.write(SwingFXUtils.fromFXImage(snapshot, null), format, file);
 		}catch(IOException e) {
 			e.printStackTrace();
 		}
@@ -562,10 +736,12 @@ public class Controller implements Initializable, EventHandler<ActionEvent>{
 	private void undo() {
 		WritableImage undoImage = canvasSnapshots.get(canvasSnapshots.size()-2-undoCounter);
 		if(canvas.getWidth()!=undoImage.getWidth()) {
+			canvasSnapshotAnchor.setPrefWidth(undoImage.getWidth());
 			canvas.setWidth(undoImage.getWidth());
 			widthField.setText(""+(int)undoImage.getWidth());
 		}
 		if(canvas.getHeight()!=undoImage.getHeight()) {
+			canvasSnapshotAnchor.setPrefHeight(undoImage.getHeight());
 			canvas.setHeight(undoImage.getHeight());
 			heightField.setText(""+(int)undoImage.getHeight());
 		}
@@ -581,10 +757,12 @@ public class Controller implements Initializable, EventHandler<ActionEvent>{
 	private void redo() {
 		WritableImage redoImage = canvasSnapshots.get(canvasSnapshots.size()-undoCounter);
 		if(canvas.getWidth()!=redoImage.getWidth()) {
+			canvasSnapshotAnchor.setPrefWidth(redoImage.getWidth());
 			canvas.setWidth(redoImage.getWidth());
 			widthField.setText(""+(int)redoImage.getWidth());
 		}
 		if(canvas.getHeight()!=redoImage.getHeight()) {
+			canvasSnapshotAnchor.setPrefHeight(redoImage.getHeight());
 			canvas.setHeight(redoImage.getHeight());
 			heightField.setText(""+(int)redoImage.getHeight());
 		}
@@ -625,8 +803,21 @@ public class Controller implements Initializable, EventHandler<ActionEvent>{
 	public void handle(ActionEvent e) {
 		Object source = e.getSource();
 		Queue<Button> toDisable = new LinkedList<Button>();
+		if(gc.getLineDashes()!=null) {
+			gc.setLineDashes(null);
+		}
 		if(currentTool==MOVE) {
 			gc.drawImage(canvasSnapshots.get(canvasSnapshots.size()-1), 0, 0);
+		}else if(currentTool==TEXT_EDIT) {
+			gc.drawImage(rubberBandSnapshot, 0, 0);
+			if(!canvasText.getText().equals("")&&!firstSnapshot) {
+				WritableImage snapshot = canvasSnapshotAnchor.snapshot(sParameters, null);
+				canvasSnapshots.add(snapshot);
+				pr = snapshot.getPixelReader();
+				undoButton.setDisable(false);
+				gc.drawImage(snapshot, 0, 0);
+			}
+			canvasAnchor.getChildren().remove(canvasText);
 		}
 		if(source.equals(saveItem)) {
 			saveAs("png");
@@ -691,9 +882,18 @@ public class Controller implements Initializable, EventHandler<ActionEvent>{
 			canvas.setCursor(Cursor.CROSSHAIR);
 		}else if(source.equals(undoButton)) {
 			undo();
-			if(currentTool==MOVE) currentTool=CROP;
+			if(currentTool==MOVE) {
+				currentTool=CROP;
+			}else if(currentTool==TEXT_EDIT) {
+				currentTool=TEXT;
+			}
 		}else if(source.equals(redoButton)) {
 			redo();
+			if(currentTool==MOVE) {
+				currentTool=CROP;
+			}else if(currentTool==TEXT_EDIT) {
+				currentTool=TEXT;
+			}
 		}
 	}
 }

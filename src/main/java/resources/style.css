@@ -1,10 +1,53 @@
-.c-button{
-	-fx-background-color: #696969;
+@font-face{
+	src: url('good_timing.ttf');
 }
+
 .scroll-pane{
 	-fx-focus-color: #000000;
 	-fx-background-color: transparent;
 }
+.text-area {
+    -fx-cursor: move;
+    -fx-font: 30px "Good Timing Rg";
+	-fx-wrap-text: true;
+    -fx-background-color: transparent;
+}
+
+.text-area .scroll-pane {
+    -fx-hbar-policy: never;
+    -fx-vbar-policy: never;
+    -fx-padding: 5 4 4 5;
+    -fx-background-color: transparent;
+}
+
+.text-area > .scroll-pane > .scroll-bar:horizontal {
+    -fx-background-radius: null;
+}
+.text-area > .scroll-pane > .scroll-bar:vertical {
+    -fx-background-radius: null;
+}
+.text-area > .scroll-pane > .corner {
+    -fx-background-radius: null;
+}
+
+
+.text-area .scroll-pane .viewport{
+	-fx-background-color: transparent;
+}
+
+
+.text-area .scroll-pane .content{
+	-fx-background-color: transparent;
+}
+
+.text-area .content{
+	-fx-background-color: transparent;
+}
+
+.c-button{
+	-fx-background-color: #696969;
+}
+
 .highlight-label{
 	-fx-text-alignment: center;
 	-fx-text-fill: #FFFFFF;
@@ -23,3 +66,12 @@
 	-fx-text-alignment: center;
 	-fx-text-fill: #cc0000;
 }
+#shown-field{
+	-fx-font: 28px "Android 101";
+}
+#hidden-field{
+	-fx-font: 28px "Android 101";
+	-fx-highlight-fill: transparent;
+	-fx-display-caret: false;
+}
+

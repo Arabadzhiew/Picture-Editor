@@ -31,6 +31,7 @@ public class CoordinateDrawer {
 		window.setResizable(false);
 		window.setTitle("Coordinate drawer");
 		
+		//layout management
 		GridPane mainPane = new GridPane();
 		mainPane.setId("main-pane");
 		setRowConstraints(mainPane, 10.0, VPos.CENTER);
@@ -111,6 +112,7 @@ public class CoordinateDrawer {
 		innerMainPane2.add(errorLabel, 0, 0);
 		Button drawButton = new Button("Draw");
 		innerMainPane2.add(drawButton, 0, 1);
+		//end of layout management
 		
 		drawButton.setOnAction(e->{
 			noExceptions = true;

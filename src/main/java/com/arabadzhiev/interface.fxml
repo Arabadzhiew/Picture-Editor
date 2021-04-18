@@ -3,6 +3,7 @@
 <?import javafx.scene.layout.VBox?>
 <?import javafx.scene.layout.HBox?>
 <?import javafx.scene.layout.GridPane?>
+<?import javafx.scene.layout.Pane?>
 <?import javafx.scene.layout.AnchorPane?>
 <?import javafx.scene.layout.RowConstraints?>
 <?import javafx.scene.layout.ColumnConstraints?>
@@ -16,10 +17,13 @@
 <?import javafx.scene.control.TextField?>
 <?import javafx.scene.control.Tooltip?>
 <?import javafx.scene.paint.Color?>
+<?import javafx.scene.canvas.Canvas?>
+<?import javafx.scene.image.Image?>
+<?import javafx.scene.image.ImageView?>
+<?import javafx.scene.Group?>
 <?import javafx.geometry.VPos?>
 <?import javafx.geometry.HPos?>
 <?import javafx.geometry.Insets?>
-<?import javafx.scene.canvas.Canvas?>
 
 <BorderPane xmlns:fx="http://javafx.com/fxml" 
 fx:controller="com.arabadzhiev.Controller"
@@ -76,8 +80,24 @@ stylesheets="resources/style.css">
 											<ColumnConstraints percentWidth="50.0" halignment="LEFT"/>
 										</columnConstraints>
 										<children>
-											<Button GridPane.rowIndex="0" GridPane.columnIndex="0" text="Crop" fx:id="cropButton" onAction="#handle"/>
-											<Button GridPane.rowIndex="0" GridPane.columnIndex="1" text="Drop" fx:id="scissionButton" onAction="#handle"/>
+											<Button GridPane.rowIndex="0" GridPane.columnIndex="0" fx:id="cropButton" onAction="#handle">
+												<graphic>
+													<ImageView fitWidth="20" fitHeight="20">
+														<image>
+															<Image url="resources/buttonImages/crop.png"/>
+														</image>
+													</ImageView>
+												</graphic>
+											</Button>
+											<Button GridPane.rowIndex="0" GridPane.columnIndex="1" fx:id="scissionButton" onAction="#handle">
+												<graphic>
+													<ImageView fitWidth="20" fitHeight="20">
+														<image>
+															<Image url = "resources/buttonImages/scission.png"/>
+														</image>
+													</ImageView>
+												</graphic>
+											</Button>
 										</children>
 									</GridPane>
 									<Button GridPane.rowIndex="1" GridPane.columnIndex="0" text="Coordinate Drawer" disable="true" fx:id="cdButton" onAction="#handle"/>
@@ -216,11 +236,15 @@ stylesheets="resources/style.css">
 		</GridPane>
 	</bottom>
 	<center>
-		<AnchorPane style="-fx-background-color: #9faab7">
-			<ScrollPane maxWidth="650.0" maxHeight="450.0" hbarPolicy="AS_NEEDED" vbarPolicy="AS_NEEDED" fx:id="canvasPane" >
-				<Canvas fx:id="canvas" width="600.0" height="400.0" onMouseMoved="#listenForMovement" 
-				onMousePressed="#listenForPress" onMouseReleased="#listenForRelease" onMouseDragged="#listenForDrag" 
-				pickOnBounds="true"/>
+		<AnchorPane style="-fx-background-color: #9faab7;">
+			<ScrollPane styleClass="edge-to-edge" maxWidth="650.0" maxHeight="450.0" hbarPolicy="AS_NEEDED" vbarPolicy="AS_NEEDED" fx:id="canvasPane" >
+				<ScrollPane styleClass="edge-to-edge" prefWidth="600.0" prefHeight="400.0" hbarPolicy="NEVER" vbarPolicy="NEVER" fx:id="canvasSnapshotAnchor">
+					<AnchorPane style="-fx-background-color: #ffffff" fx:id="canvasAnchor">
+						<Canvas fx:id="canvas" width="600.0" height="400.0" onMouseMoved="#listenForMovement" 
+						onMousePressed="#listenForPress" onMouseReleased="#listenForRelease" onMouseDragged="#listenForDrag" 
+						pickOnBounds="true"/>
+					</AnchorPane>
+				</ScrollPane>
 			</ScrollPane>
 		</AnchorPane>
 	</center>
