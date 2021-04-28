@@ -44,6 +44,15 @@
 	-fx-background-color: transparent;
 }
 
+.hyperlink-label{
+	-fx-text-fill: red;
+	-fx-alignment: center;
+}
+
+.hyperlink{
+	-fx-border-color: transparent;
+}
+
 .c-button{
 	-fx-background-color: #696969;
 }
@@ -55,6 +64,14 @@
 	-fx-border-width: 1;
 	-fx-border-color: green;
 }
+
+.title-label{
+	-fx-font-weight: bold;
+	-fx-font-size: 20px;
+	-fx-font-alpha: 100;
+	-fx-text-alpha: 100;
+}
+
 .pane-with-border{
 	-fx-border-style: hidden solid hidden hidden;
 	-fx-border-color: #737373;

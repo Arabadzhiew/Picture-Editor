@@ -1,5 +1,6 @@
 package com.arabadzhiev;
 
+import javafx.application.Platform;
 import javafx.geometry.HPos;
 import javafx.geometry.Pos;
 import javafx.geometry.VPos;
@@ -7,6 +8,7 @@ import javafx.scene.Scene;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.TextField;
+import javafx.scene.image.Image;
 import javafx.scene.layout.ColumnConstraints;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
@@ -30,6 +32,7 @@ public class CoordinateDrawer {
 		window.initModality(Modality.APPLICATION_MODAL);
 		window.setResizable(false);
 		window.setTitle("Coordinate drawer");
+		window.getIcons().add(new Image("/resources/windowIcon.png"));
 		
 		//layout management
 		GridPane mainPane = new GridPane();
@@ -136,6 +139,17 @@ public class CoordinateDrawer {
 		Scene scene = new Scene(mainPane,350,300);
 		scene.getStylesheets().add(getClass().getResource("/resources/style.css").toExternalForm());
 		window.setScene(scene);
+		
+		Platform.runLater(new Runnable() {
+
+			@Override
+			public void run() {
+				MainWindow.centerInsideMain(window);
+				
+			}
+			
+		});
+		
 		window.showAndWait();
 		
 		return coordinates;

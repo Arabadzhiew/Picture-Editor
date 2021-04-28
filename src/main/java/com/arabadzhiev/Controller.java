@@ -5,11 +5,17 @@ import java.io.IOException;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.LinkedList;
+import java.util.List;
 import java.util.Queue;
 import java.util.ResourceBundle;
 
 import javax.imageio.ImageIO;
 
+import org.apache.commons.io.FilenameUtils;
+
+import javafx.collections.FXCollections;
+import javafx.collections.ListChangeListener;
+import javafx.collections.ObservableList;
 import javafx.embed.swing.SwingFXUtils;
 import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
@@ -25,9 +31,12 @@ import javafx.scene.control.Button;
 import javafx.scene.control.ColorPicker;
 import javafx.scene.control.Label;
 import javafx.scene.control.MenuItem;
+import javafx.scene.control.RadioMenuItem;
 import javafx.scene.control.ScrollPane;
+import javafx.scene.control.Slider;
 import javafx.scene.control.TextArea;
 import javafx.scene.control.TextField;
+import javafx.scene.control.Tooltip;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.image.PixelReader;
@@ -54,35 +63,57 @@ public class Controller implements Initializable, EventHandler<ActionEvent>{
 	private final int TRIANGLE_DRAWER = 12;
 	
 	private int currentTool = PENCIL;
-	private double thickness = 2;
 	private int undoCounter = 0;
+	private int savedFileSnapshotIndex;
+	private double thickness = 2;
 	private double startX=0;
 	private double startY=0;
 	private double lastX;
 	private double lastY;
 	private double endX=0;
 	private double endY=0;
+	private boolean brandNew=true;
+	private boolean filePresent=false;
+	private boolean filledShapes=false;
 	
+	private File file;
 	private CoordinateDrawer cd = new CoordinateDrawer();
-	private ToolSet ts;
 	private PixelReader pr;
 	private PixelWriter pw;
 	private FileChooser imageDirectory = new FileChooser();
+	private List<String> allExtentions = new ArrayList<String>();
+	private FileChooser.ExtensionFilter allExt;
 	private WritableImage cropImage;
 	private ImageCursor fillCursor;
 	private ImageCursor pipetteCursor;
+	private ImageView savedImageView = new ImageView(new Image(getClass().getResource("/resources/buttonImages/saved.png").toString()));
+	private ImageView notSavedImageView = new ImageView(new Image(getClass().getResource("/resources/buttonImages/notSaved.png").toString()));
+	private Tooltip savedTT = new Tooltip("File is saved");
+	private Tooltip notSavedTT = new Tooltip("File is not saved");
 	private CanvasTextBrains ctBrains;
+	private About about = new About();
 	
 	public GraphicsContext gc;
 	public WritableImage rubberBandSnapshot;
 	public SnapshotParameters sParameters = new SnapshotParameters();
-	public ArrayList<WritableImage> canvasSnapshots = new ArrayList<WritableImage>();
+	public ObservableList<WritableImage> canvasSnapshots = FXCollections.observableArrayList(new ArrayList<WritableImage>());
 	public Rectangle2D rubberBandBounds;
 	public TextArea canvasText = new TextArea();
 	public boolean firstSnapshot;
+	public static boolean saved = true;
 	
 	@FXML private BorderPane rootPane;
+	@FXML private MenuItem newItem;
+	@FXML private MenuItem openItem;
+	@FXML private MenuItem editItem;
 	@FXML private MenuItem saveItem;
+	@FXML private MenuItem saveAsItem;
+	@FXML private RadioMenuItem twoPxItem;
+	@FXML private RadioMenuItem fourPxItem;
+	@FXML private RadioMenuItem eightPxItem;
+	@FXML private RadioMenuItem sixteenPxItem;
+	@FXML private MenuItem filledShapesItem;
+	@FXML private MenuItem aboutItem;
 	@FXML private Button cropButton;
 	@FXML private Button scissionButton;
 	@FXML private Button cdButton;
@@ -97,11 +128,16 @@ public class Controller implements Initializable, EventHandler<ActionEvent>{
 	@FXML private Button undoButton;
 	@FXML private Button redoButton;
 	@FXML private AnchorPane canvasAnchor;
+	@FXML private AnchorPane resizePane;
 	@FXML private ScrollPane canvasSnapshotAnchor;
 	@FXML private Canvas canvas;
 	@FXML private Label locator;
 	@FXML private TextField widthField;
 	@FXML private TextField heightField;
+	@FXML private Label savedIcon;
+	@FXML private Label savedLabel;
+	@FXML private Slider scaleSlider;
+	@FXML private Label scaleLabel;
 	
 	@FXML public ScrollPane canvasPane;
 	@FXML public  ColorPicker colorPicker;
@@ -110,12 +146,16 @@ public class Controller implements Initializable, EventHandler<ActionEvent>{
 	
 	@Override
 	public void initialize(URL arg0, ResourceBundle arg1) {
-		imageDirectory.setTitle("Choose your output directory");
+		allExtentions.add("*.png");
+		allExtentions.add("*.jpg");
+		allExtentions.add("*.gif");
+		allExt = new FileChooser.ExtensionFilter("All image extentions", allExtentions);
+		imageDirectory.setInitialDirectory(new File(System.getProperty("user.home"), "Desktop"));
+		imageDirectory.setInitialFileName("unnamed");
 		canvasSnapshots.add(canvas.snapshot(null, null));
 		gc = canvas.getGraphicsContext2D();
 		//gc.setFill(Color.WHITE);
 		//gc.fillRect(0, 0, canvas.getWidth(), canvas.getHeight());
-		//gc.setLineWidth(2);
 		pw = gc.getPixelWriter();
 		sParameters.setFill(Color.WHITE);
 		pr = canvas.snapshot(sParameters, null).getPixelReader();
@@ -125,11 +165,30 @@ public class Controller implements Initializable, EventHandler<ActionEvent>{
 		canvasText.setOnMouseReleased(ctBrains.mouseReleased);
 		canvasText.setOnMouseDragged(ctBrains.mouseDragged);
 		canvasText.setStyle("-fx-text-fill: "+getColorHex(colorPicker.getValue()));
+		
+		colorPicker.valueProperty().addListener((property, olvValue, newValue)->{
+			if(canvasAnchor.getChildren().contains(canvasText)) {
+				String hex = getColorHex(newValue);
+				canvasText.setStyle("-fx-text-fill: "+hex);
+			}
+			
+		});
+		
+		rootPane.widthProperty().addListener((property,oldVal,newVal) ->{
+			canvasPane.setMaxWidth((rootPane.getWidth()*0.66)+50);
+		});
+		rootPane.heightProperty().addListener((property,oldVal,newVal) ->{
+			canvasPane.setMaxHeight((rootPane.getHeight()*0.66)+50);
+		});
+		
 		widthField.setText(""+(int)canvas.getWidth());
 		heightField.setText(""+(int)canvas.getHeight());
 		widthField.textProperty().addListener((property, oldValue, newValue) -> { 
 			int parsedNewVal = parseFromTextField(widthField,newValue,600);
-			if(parsedNewVal!=0&&canvas.getWidth()!=parsedNewVal) {
+			if(parsedNewVal>3840) {
+				widthField.setText(""+3840);
+				pr = canvas.snapshot(sParameters, null).getPixelReader();
+			}else if(parsedNewVal!=0&&canvas.getWidth()!=parsedNewVal) {
 				canvasSnapshotAnchor.setPrefWidth(parsedNewVal);
 				canvas.setWidth(parsedNewVal);
 				WritableImage resizeSnapshot = canvas.snapshot(sParameters, null);
@@ -139,7 +198,9 @@ public class Controller implements Initializable, EventHandler<ActionEvent>{
 		});
 		heightField.textProperty().addListener((property, oldValue, newValue) -> {
 			int parsedNewVal = parseFromTextField(heightField,newValue,400);
-			if(parsedNewVal!=0&&canvas.getHeight()!=parsedNewVal) {
+			if(parsedNewVal>2160) {
+				heightField.setText(""+2160);
+			}else if(parsedNewVal!=0&&canvas.getHeight()!=parsedNewVal) {
 				canvasSnapshotAnchor.setPrefHeight(parsedNewVal);
 				canvas.setHeight(parsedNewVal);
 				WritableImage resizeSnapshot = canvas.snapshot(sParameters, null);
@@ -147,17 +208,68 @@ public class Controller implements Initializable, EventHandler<ActionEvent>{
 				pr = canvas.snapshot(sParameters, null).getPixelReader();
 			}
 		});
-		colorPicker.valueProperty().addListener((property, olvValue, newValue)->{
-			if(canvasAnchor.getChildren().contains(canvasText)) {
-				String hex = getColorHex(newValue);
-				canvasText.setStyle("-fx-text-fill: "+hex);
+		
+		canvasSnapshots.addListener((ListChangeListener<WritableImage>) change -> {
+			if(filePresent) {
+				saveItem.setDisable(false);
+				savedIcon.setGraphic(notSavedImageView);
+				savedIcon.setTooltip(notSavedTT);
 			}
-			
+			if(saved) {
+				saved = false;
+			}
 		});
+		
+		scaleSlider.valueProperty().addListener((property, oldValue, newValue) -> {
+			double value = (double)newValue;
+			switch((int)value) {
+				case 1:
+					resizePane.setScaleX(0.125);
+					resizePane.setScaleY(0.125);
+					scaleLabel.setText("Scale: x0.125");
+					break;
+				case 2:
+					resizePane.setScaleX(0.25);
+					resizePane.setScaleY(0.25);
+					scaleLabel.setText("Scale: x0.25");
+					break;
+				case 3:
+					resizePane.setScaleX(0.5);
+					resizePane.setScaleY(0.5);
+					scaleLabel.setText("Scale: x0.5");
+					break;
+				case 4:
+					resizePane.setScaleX(1);
+					resizePane.setScaleY(1);
+					scaleLabel.setText("Scale: x1");
+					break;
+				case 5:
+					resizePane.setScaleX(2);
+					resizePane.setScaleY(2);
+					scaleLabel.setText("Scale: x2");
+					break;
+				case 6:
+					resizePane.setScaleX(4);
+					resizePane.setScaleY(4);
+					scaleLabel.setText("Scale: x4");
+					break;
+				case 7:
+					resizePane.setScaleX(8);
+					resizePane.setScaleY(8);
+					scaleLabel.setText("Scale: x8");
+					break;	
+			}
+		});
+		
 		
 		canvas.setCursor(Cursor.CROSSHAIR);
 		fillCursor = new ImageCursor(new Image(getClass().getResource("/resources/fillCursor.png").toString()),64,37);
 		pipetteCursor = new ImageCursor(new Image(getClass().getResource("/resources/pipetteCursor.png").toString()),4,62);
+		
+		savedImageView.setFitWidth(16);
+		savedImageView.setFitHeight(16);
+		notSavedImageView.setFitWidth(16);
+		notSavedImageView.setFitHeight(16);
 		
 		ImageView pencilImageView = new ImageView(new Image(getClass().getResource("/resources/buttonImages/pencil.png").toString()));
 		pencilImageView.setFitWidth(20);
@@ -213,8 +325,6 @@ public class Controller implements Initializable, EventHandler<ActionEvent>{
 		linkedButtons.add(rectangleButton);
 		linkedButtons.add(ovalButton);
 		linkedButtons.add(triangleButton);
-		
-		ts = new ToolSet(pw);
 	}
 	
 	public void listenForMovement(MouseEvent e) {
@@ -298,16 +408,17 @@ public class Controller implements Initializable, EventHandler<ActionEvent>{
 			canvasText.setLayoutY(minY);
 		}else if(currentTool==LINE_DRAWER) {
 			gc.drawImage(rubberBandSnapshot, 0, 0);
+			gc.setLineWidth(thickness);
 			gc.strokeLine(startX, startY, e.getX(), e.getY());
 		}else if(currentTool==RECTANGLE_DRAWER) {
 			gc.drawImage(rubberBandSnapshot, 0, 0);
-			drawRectangle(startX, startY, e.getX(), e.getY(),true);
+			drawRectangle(startX, startY, e.getX(), e.getY(), filledShapes);
 		}else if(currentTool==OVAL_DRAWER) {
 			gc.drawImage(rubberBandSnapshot, 0, 0);
-			drawOval(startX, startY, e.getX(), e.getY());
+			drawOval(startX, startY, e.getX(), e.getY(), filledShapes);
 		}else if(currentTool==TRIANGLE_DRAWER) {
 			gc.drawImage(rubberBandSnapshot, 0, 0);
-			gc.fillPolygon(new double[] {startX+(e.getX()-startX)/2,e.getX(),startX}, new double[] {startY,e.getY(),e.getY()}, 3);
+			drawTriangle(startX, startY, e.getX(), e.getY(), filledShapes);
 		}
 	}
 	
@@ -316,6 +427,7 @@ public class Controller implements Initializable, EventHandler<ActionEvent>{
 		startY = (int)e.getY();
 		lastX = e.getX();
 		lastY = e.getY();
+		brandNew = false;
 		if(currentTool==CROP) {
 			rubberBandSnapshot = canvas.snapshot(sParameters, null);
 		}else if(currentTool==MOVE) {
@@ -353,26 +465,39 @@ public class Controller implements Initializable, EventHandler<ActionEvent>{
 					if(undoCounter>0) {
 						clearSnapshots();
 					}
+					canvasText.setStyle("-fx-display-caret: false; " + "-fx-text-fill: " + getColorHex(colorPicker.getValue()) + "; " +
+					"-fx-highlight-fill: transparent; -fx-highlight-text-fill: " + getColorHex(colorPicker.getValue()));
 					WritableImage snapshot = canvasSnapshotAnchor.snapshot(sParameters, null);
+					canvasText.setStyle("-fx-text-fill: " + getColorHex(colorPicker.getValue()));
 					canvasSnapshots.add(snapshot);
 					pr = snapshot.getPixelReader();
 					undoButton.setDisable(false);
 				}
 				canvas.setCursor(Cursor.CLOSED_HAND);
 			}else{
-				gc.drawImage(rubberBandSnapshot, 0, 0);
-				if(undoCounter>0) {
-					clearSnapshots();
+				boolean hasText=false;
+				textCheck: for(int i = 0; i<canvasText.getText().length(); i++) {
+					if(canvasText.getText().charAt(i)!=' ') {
+						hasText=true;
+						break textCheck;
+					}
 				}
-				canvasText.setStyle("-fx-display-caret: false; " + "-fx-text-fill: " + getColorHex(colorPicker.getValue()));
-				WritableImage snapshot = canvasSnapshotAnchor.snapshot(sParameters, null);
-				canvasText.setStyle("-fx-text-fill: " + getColorHex(colorPicker.getValue()));
-				canvasSnapshots.add(snapshot);
-				pr = snapshot.getPixelReader();
-				undoButton.setDisable(false);
-				gc.drawImage(snapshot, 0, 0);
-				canvasAnchor.getChildren().remove(canvasText);
-				rubberBandSnapshot = canvas.snapshot(sParameters, null);
+				if(hasText) {
+					gc.drawImage(rubberBandSnapshot, 0, 0);
+					if(undoCounter>0) {
+						clearSnapshots();
+					}
+					canvasText.setStyle("-fx-display-caret: false; " + "-fx-text-fill: " + getColorHex(colorPicker.getValue()) + "; " +
+					"-fx-highlight-fill: transparent; -fx-highlight-text-fill: " + getColorHex(colorPicker.getValue()));
+					WritableImage snapshot = canvasSnapshotAnchor.snapshot(sParameters, null);
+					canvasText.setStyle("-fx-text-fill: " + getColorHex(colorPicker.getValue()));
+					canvasSnapshots.add(snapshot);
+					pr = snapshot.getPixelReader();
+					undoButton.setDisable(false);
+					gc.drawImage(snapshot, 0, 0);
+					canvasAnchor.getChildren().remove(canvasText);
+					rubberBandSnapshot = canvas.snapshot(sParameters, null);
+				}
 				currentTool=TEXT;
 			}
 			
@@ -381,7 +506,6 @@ public class Controller implements Initializable, EventHandler<ActionEvent>{
 		}else if(currentTool==LINE_DRAWER){
 			rubberBandSnapshot = (canvas.snapshot(sParameters, null));
 			gc.setStroke(colorPicker.getValue());
-			gc.setLineWidth(thickness);
 		}else if(currentTool==RECTANGLE_DRAWER) {
 			rubberBandSnapshot = (canvas.snapshot(sParameters, null));
 			gc.setFill(colorPicker.getValue());
@@ -460,7 +584,7 @@ public class Controller implements Initializable, EventHandler<ActionEvent>{
 			canvas.setCursor(Cursor.MOVE);
 		}
 		
-		if((!(startX==endX&&startY==endY)&&!(currentTool==CROP)&&!(currentTool==TEXT)&&!(currentTool==TEXT_EDIT))||currentTool==FILL) {
+		if((!(startX==endX&&startY==endY)&&!(currentTool==CROP)&&!(currentTool==TEXT)&&!(currentTool==TEXT_EDIT)&&!(currentTool==PIPETTE))||currentTool==FILL) {
 			if(currentTool==MOVE) {
 				gc.drawImage(rubberBandSnapshot, 0, 0);
 				gc.drawImage(cropImage, rubberBandBounds.getMinX(), rubberBandBounds.getMinY());
@@ -506,7 +630,16 @@ public class Controller implements Initializable, EventHandler<ActionEvent>{
 		if(undoCounter>0) {
 			clearSnapshots();
 		}
-		WritableImage snapshot = canvasPane.snapshot(sParameters, null);
+		WritableImage snapshot = canvasSnapshotAnchor.snapshot(sParameters, null);
+		canvasSnapshots.add(snapshot);
+		pr = snapshot.getPixelReader();
+		undoButton.setDisable(false);
+	}
+	
+	public void addNewSnapshot(WritableImage snapshot) {
+		if(undoCounter>0) {
+			clearSnapshots();
+		}
 		canvasSnapshots.add(snapshot);
 		pr = snapshot.getPixelReader();
 		undoButton.setDisable(false);
@@ -636,6 +769,7 @@ public class Controller implements Initializable, EventHandler<ActionEvent>{
 				gc.fillRect(startX, startY, endX-startX, endY-startY);
 			}
 		}else if(!filled) {
+			gc.setLineWidth(thickness);
 			if(endX-startX<0 && endY-startY<0) {
 				gc.strokeRect(endX, endY, startX-endX, startY-endY);
 			}else if(endX-startX<0 && endY-startY>=0){
@@ -647,15 +781,37 @@ public class Controller implements Initializable, EventHandler<ActionEvent>{
 			}
 		}
 	}
-	private void drawOval(double startX, double startY, double endX, double endY) {
-		if(endX-startX<0 && endY-startY<0) {
-			gc.fillOval(endX, endY, startX-endX, startY-endY);
-		}else if(endX-startX<0 && endY-startY>=0){
-			gc.fillOval(endX, startY, startX-endX, endY-startY);
-		}else if(endX-startX>=0 && endY-startY<0) {
-			gc.fillOval(startX, endY, endX-startX, startY-endY);
-		}else {
-			gc.fillOval(startX, startY, endX-startX, endY-startY);
+	private void drawOval(double startX, double startY, double endX, double endY, boolean filled) {
+		if(filled) {
+			if(endX-startX<0 && endY-startY<0) {
+				gc.fillOval(endX, endY, startX-endX, startY-endY);
+			}else if(endX-startX<0 && endY-startY>=0){
+				gc.fillOval(endX, startY, startX-endX, endY-startY);
+			}else if(endX-startX>=0 && endY-startY<0) {
+				gc.fillOval(startX, endY, endX-startX, startY-endY);
+			}else {
+				gc.fillOval(startX, startY, endX-startX, endY-startY);
+			}
+		}else if(!filled) {
+			gc.setLineWidth(thickness);
+			if(endX-startX<0 && endY-startY<0) {
+				gc.strokeOval(endX, endY, startX-endX, startY-endY);
+			}else if(endX-startX<0 && endY-startY>=0){
+				gc.strokeOval(endX, startY, startX-endX, endY-startY);
+			}else if(endX-startX>=0 && endY-startY<0) {
+				gc.strokeOval(startX, endY, endX-startX, startY-endY);
+			}else {
+				gc.strokeOval(startX, startY, endX-startX, endY-startY);
+			}
+		}
+	}
+	
+	private void drawTriangle(double startX, double startY, double endX, double endY, boolean filled) {
+		if(filled) {
+			gc.fillPolygon(new double[] {startX+(endX-startX)/2,endX,startX}, new double[] {startY,endY,endY}, 3);
+		}else if(!filled) {
+			gc.setLineWidth(thickness);
+			gc.strokePolygon(new double[] {startX+(endX-startX)/2,endX,startX}, new double[] {startY,endY,endY}, 3);
 		}
 	}
 	
@@ -666,17 +822,18 @@ public class Controller implements Initializable, EventHandler<ActionEvent>{
 		}
 		switch(currentTool) {
 			case LINE_DRAWER:
+				gc.setLineWidth(thickness);
 				gc.strokeLine(startX, startY, endX, endY);
 				break;
 			case RECTANGLE_DRAWER:
-				drawRectangle(startX,startY,endX,endY,true);
+				drawRectangle(startX,startY,endX,endY,filledShapes);
 				break;
 			case OVAL_DRAWER:
-				drawOval(startX, startY, endX, endY);
+				drawOval(startX, startY, endX, endY, filledShapes);
 				break;
 			
 			case TRIANGLE_DRAWER:
-				gc.strokePolygon(new double[] {startX+(endX-startX)/2,endX,startX}, new double[] {startY,endY,endY}, 3);
+				drawTriangle(startX, startY, endX, endY, filledShapes);
 				break;
 		}
 		if(undoCounter>0) {
@@ -688,15 +845,126 @@ public class Controller implements Initializable, EventHandler<ActionEvent>{
 		undoButton.setDisable(false);
 	}
 	
-	private void saveAs(String format) {
-		WritableImage snapshot = canvas.snapshot(sParameters, null);
-		File file = imageDirectory.showSaveDialog(rootPane.getScene().getWindow());
+	private void open() {
+		imageDirectory.setTitle("Choose a input file");
+		imageDirectory.getExtensionFilters().clear();
+		imageDirectory.getExtensionFilters().addAll( new FileChooser.ExtensionFilter("PNG", "*.png"), 
+				new FileChooser.ExtensionFilter("JPEG", "*.jpg"), new FileChooser.ExtensionFilter("GIF", "*.gif"), allExt);
+		imageDirectory.setSelectedExtensionFilter(allExt);
+		File file = imageDirectory.showOpenDialog(rootPane.getScene().getWindow());
 		try {
-			ImageIO.write(SwingFXUtils.fromFXImage(snapshot, null), format, file);
+			Image image = new Image(file.toURI().toString());
+			canvasSnapshotAnchor.setPrefWidth(image.getWidth());
+			canvas.setWidth(image.getWidth());
+			widthField.setText(""+(int)image.getWidth());
+			canvasSnapshotAnchor.setPrefHeight(image.getHeight());
+			canvas.setHeight(image.getHeight());
+			heightField.setText(""+(int)image.getHeight());
+			gc.setFill(Color.WHITE);
+			gc.fillRect(0, 0, canvas.getWidth(), canvas.getHeight());
+			gc.drawImage(image, 0, 0);
+			addNewSnapshot();
+		}catch(NullPointerException e) {
+			//
+		}
+	}
+	
+	private void edit() {
+		imageDirectory.setTitle("Choose a input file");
+		imageDirectory.getExtensionFilters().clear();
+		imageDirectory.getExtensionFilters().addAll( new FileChooser.ExtensionFilter("PNG", "*.png"), 
+				new FileChooser.ExtensionFilter("JPEG", "*.jpg"), new FileChooser.ExtensionFilter("GIF", "*.gif"), allExt);
+		imageDirectory.setSelectedExtensionFilter(allExt);
+		File file = imageDirectory.showOpenDialog(rootPane.getScene().getWindow());
+		if(file!=null) {
+			this.file = file;
+		}
+		try {
+			Image image = new Image(file.toURI().toString());
+			canvasSnapshotAnchor.setPrefWidth(image.getWidth());
+			canvas.setWidth(image.getWidth());
+			widthField.setText(""+(int)image.getWidth());
+			canvasSnapshotAnchor.setPrefHeight(image.getHeight());
+			canvas.setHeight(image.getHeight());
+			heightField.setText(""+(int)image.getHeight());
+			filePresent = false;
+			canvasSnapshots.clear();
+			gc.setFill(Color.WHITE);
+			gc.fillRect(0, 0, canvas.getWidth(), canvas.getHeight());
+			gc.drawImage(image, 0, 0);
+			undoCounter = 0;
+			addNewSnapshot();
+			filePresent = true;
+			savedIcon.setGraphic(savedImageView);
+			savedIcon.setTooltip(savedTT);
+			savedLabel.setText(file.getName());
+			undoButton.setDisable(true);
+			redoButton.setDisable(true);
+			saveItem.setDisable(true);
+			savedFileSnapshotIndex = canvasSnapshots.size()-1-undoCounter;
+		}catch(NullPointerException e) {
+			//
+		}
+	}
+	
+	private void save() {
+		WritableImage snapshot = canvas.snapshot(sParameters, null);
+		String extention="";
+		if(file!=null) {
+			extention = FilenameUtils.getExtension(file.toString());
+		}
+		if(extention.equals("jpg")) {
+			extention = "png";
+		}
+		try {
+			ImageIO.write(SwingFXUtils.fromFXImage(snapshot, null), extention, file);
+			saved = true;
+			saveItem.setDisable(true);
+			savedFileSnapshotIndex = canvasSnapshots.size()-1-undoCounter;
+			savedIcon.setGraphic(savedImageView);
+			savedIcon.setTooltip(savedTT);
 		}catch(IOException e) {
 			e.printStackTrace();
+		}catch(IllegalArgumentException e2) {
+			//
 		}
-		
+	}
+	
+	private void saveAs() {
+		if(currentTool==TEXT_EDIT) {
+			currentTool=TEXT;
+		}else if(currentTool==MOVE) {
+			currentTool=CROP;
+		}
+		WritableImage snapshot = canvas.snapshot(sParameters, null);
+		imageDirectory.setTitle("Choose the output directory of your file");
+		imageDirectory.getExtensionFilters().clear();
+		imageDirectory.getExtensionFilters().addAll( new FileChooser.ExtensionFilter("PNG", "*.png"), 
+				new FileChooser.ExtensionFilter("JPEG", "*.jpg"), new FileChooser.ExtensionFilter("GIF", "*.gif"));
+		File file = imageDirectory.showSaveDialog(rootPane.getScene().getWindow());
+		if(file!=null) {
+			this.file = file;
+		}
+		String extention="";
+		if(file!=null) {
+			extention = FilenameUtils.getExtension(file.toString());
+		}
+		if(extention.equals("jpg")) {
+			extention = "png";
+		}
+		try {
+			ImageIO.write(SwingFXUtils.fromFXImage(snapshot, null), extention, file);
+			saved = true;
+			filePresent = true;
+			savedFileSnapshotIndex = canvasSnapshots.size()-1-undoCounter;
+			savedIcon.setGraphic(savedImageView);
+			savedIcon.setTooltip(savedTT);
+			savedLabel.setText(file.getName());
+		}catch(IOException e) {
+			e.printStackTrace();
+		}catch(IllegalArgumentException e2) {
+			//
+		}
 	}
 	
 	private void fill(int x, int y, Color checkColor, Color changeColor) {
@@ -745,6 +1013,17 @@ public class Controller implements Initializable, EventHandler<ActionEvent>{
 			canvas.setHeight(undoImage.getHeight());
 			heightField.setText(""+(int)undoImage.getHeight());
 		}
+		if(savedFileSnapshotIndex==canvasSnapshots.size()-2-undoCounter&&filePresent) {
+			saved = true;
+			savedIcon.setGraphic(savedImageView);
+			savedIcon.setTooltip(savedTT);
+			saveItem.setDisable(true);
+		}else if(filePresent){
+			saved = false;
+			saveItem.setDisable(false);
+			savedIcon.setGraphic(notSavedImageView);
+			savedIcon.setTooltip(notSavedTT);
+		}
 		gc.drawImage(undoImage, 0, 0);
 		pr = canvasSnapshots.get(canvasSnapshots.size()-2-undoCounter).getPixelReader();
 		redoButton.setDisable(false);
@@ -765,6 +1044,15 @@ public class Controller implements Initializable, EventHandler<ActionEvent>{
 			canvasSnapshotAnchor.setPrefHeight(redoImage.getHeight());
 			canvas.setHeight(redoImage.getHeight());
 			heightField.setText(""+(int)redoImage.getHeight());
+		}
+		if(savedFileSnapshotIndex==canvasSnapshots.size()-undoCounter&&filePresent) {
+			saveItem.setDisable(true);
+			savedIcon.setGraphic(savedImageView);
+			savedIcon.setTooltip(savedTT);
+		}else if(filePresent){
+			saveItem.setDisable(false);
+			savedIcon.setGraphic(notSavedImageView);
+			savedIcon.setTooltip(notSavedTT);
 		}
 		gc.drawImage(redoImage, 0, 0);
 		pr = canvasSnapshots.get(canvasSnapshots.size()-undoCounter).getPixelReader();
@@ -811,7 +1099,9 @@ public class Controller implements Initializable, EventHandler<ActionEvent>{
 		}else if(currentTool==TEXT_EDIT) {
 			gc.drawImage(rubberBandSnapshot, 0, 0);
 			if(!canvasText.getText().equals("")&&!firstSnapshot) {
+				canvasText.setStyle("-fx-display-caret: false; -fx-text-fill: " + getColorHex(colorPicker.getValue()));
 				WritableImage snapshot = canvasSnapshotAnchor.snapshot(sParameters, null);
+				canvasText.setStyle("-fx-text-fill: " + getColorHex(colorPicker.getValue()));
 				canvasSnapshots.add(snapshot);
 				pr = snapshot.getPixelReader();
 				undoButton.setDisable(false);
@@ -819,8 +1109,44 @@ public class Controller implements Initializable, EventHandler<ActionEvent>{
 			}
 			canvasAnchor.getChildren().remove(canvasText);
 		}
-		if(source.equals(saveItem)) {
-			saveAs("png");
+		if(source.equals(newItem)) {
+			canvasSnapshotAnchor.setPrefWidth(600);
+			canvas.setWidth(600);
+			widthField.setText("600");
+			canvasSnapshotAnchor.setPrefHeight(400);
+			canvas.setHeight(400);
+			heightField.setText("400");
+			gc.setStroke(Color.WHITE);
+			gc.setFill(Color.WHITE);
+			gc.fillRect(0, 0, canvas.getWidth(), canvas.getHeight());
+			if(!brandNew) {
+				addNewSnapshot();
+				brandNew=true;
+			}
+		}else if(source.equals(openItem)) {
+			open();
+		}else if(source.equals(editItem)) {
+			edit();
+		}else if(source.equals(saveItem)) {
+			save();
+		}else if(source.equals(saveAsItem)) {
+			saveAs();
+		}else if(source.equals(filledShapesItem)) {
+			if(filledShapes) {
+				filledShapes=false;
+			}else {
+				filledShapes=true;
+			}
+		}else if(source.equals(twoPxItem)) {
+			thickness=2;
+		}else if(source.equals(fourPxItem)) {
+			thickness=4;
+		}else if(source.equals(eightPxItem)) {
+			thickness=8;
+		}else if(source.equals(sixteenPxItem)) {
+			thickness=16;
+		}else if(source.equals(aboutItem)) {
+			about.display();
 		}else if(source.equals(cropButton)) {
 			toDisable.add(cropButton);
 			toDisable.add(cdButton);

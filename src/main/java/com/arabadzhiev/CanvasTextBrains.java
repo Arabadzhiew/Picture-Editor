@@ -16,10 +16,10 @@ public class CanvasTextBrains {
 	
 	private Controller controll;
 	
-	EventHandler<MouseEvent> mousePressed; 
-	EventHandler<MouseEvent> mouseReleased;
-	EventHandler<MouseEvent> mouseMoved;
-	EventHandler<MouseEvent> mouseDragged;
+	public EventHandler<MouseEvent> mousePressed; 
+	public EventHandler<MouseEvent> mouseReleased;
+	public EventHandler<MouseEvent> mouseMoved;
+	public EventHandler<MouseEvent> mouseDragged;
 	
 	
 	public CanvasTextBrains(Controller controller){
@@ -47,7 +47,7 @@ public class CanvasTextBrains {
 					controll.gc.drawImage(controll.rubberBandSnapshot, 0, 0);
 					controll.canvasText.setStyle("-fx-highlight-fill: transparent; -fx-highlight-text-fill: " +
 							controll.getColorHex(controll.colorPicker.getValue()) + "; " + "-fx-text-fill: " + 
-							controll.getColorHex(controll.colorPicker.getValue()) );
+							controll.getColorHex(controll.colorPicker.getValue()) + "; " + "-fx-display-caret: false;");
 					firstSnapshotImage = controll.canvasPane.snapshot(controll.sParameters, null);
 					controll.gc.setLineDashes(4);
 					controll.rubberBand(controll.rubberBandBounds.getMinX(), controll.rubberBandBounds.getMinY(),
@@ -62,10 +62,9 @@ public class CanvasTextBrains {
 			@Override
 			public void handle(MouseEvent e) {
 				controll.canvasText.deselect();
-				controll.canvasText.setStyle("-fx-text-fill: " + controll.getColorHex(controll.colorPicker.getValue()));
 				if(mouseWasDragged) {
 					if(!controll.firstSnapshot) {
-						controll.canvasSnapshots.add(firstSnapshotImage);
+						controll.addNewSnapshot(firstSnapshotImage);
 						controll.firstSnapshot = true;
 					}
 					controll.addNewSnapshot();
