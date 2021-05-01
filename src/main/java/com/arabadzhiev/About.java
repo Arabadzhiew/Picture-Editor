@@ -62,7 +62,7 @@ public class About {
 		mainBox.getChildren().addAll(titleLabel,versionLabel,licenseLabel,developersBox,creditsBox,copyrightLabel);
 		
 		Scene scene = new Scene(mainBox,400,300);
-		scene.getStylesheets().add(getClass().getResource("/resources/style.css").toExternalForm());
+		scene.getStylesheets().add(getClass().getResource("/resources/secondaryStyle.css").toExternalForm());
 		window.setResizable(false);
 		window.setScene(scene);
 		

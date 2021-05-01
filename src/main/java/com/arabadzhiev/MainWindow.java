@@ -7,6 +7,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
+import java.net.URL;
 
 import javafx.application.Application;
 import javafx.application.HostServices;
@@ -36,12 +37,15 @@ public class MainWindow extends Application {
 	public void start(Stage stage) throws Exception {
 		try {
 			hostServices = getHostServices();
-			Parent root = FXMLLoader.load(getClass().getResource("interface.fxml"));
+			URL fxml = getClass().getResource("interface.fxml");
+			Parent root = FXMLLoader.load(fxml);
 			stage.setTitle("Picture Editor");
-			stage.setScene(new Scene(root,screenBounds.getWidth()/1.5,screenBounds.getHeight()/1.5));
+			Scene scene = new Scene(root,screenBounds.getWidth()/1.25,screenBounds.getHeight()/1.25);
+			scene.getStylesheets().add(getClass().getResource("/resources/style.css").toExternalForm());
+			stage.setScene(scene);
 			stage.setMinWidth(675);
-			stage.setMinHeight(625);
-			stage.getIcons().add(new Image("/resources/windowIcon.png"));
+			stage.setMinHeight(475);
+			stage.getIcons().add(new Image(getClass().getResource("/resources/windowIcon.png").toString()));
 			stage.show();
 			stage.setOnCloseRequest(e ->{
 				e.consume();

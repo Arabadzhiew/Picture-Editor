@@ -1,5 +1,4 @@
 module com.arabadzhiev {
-	requires org.apache.commons.io;
 	requires java.desktop;
     requires javafx.fxml;
     requires javafx.swing;

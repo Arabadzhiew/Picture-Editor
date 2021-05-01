@@ -32,7 +32,7 @@ public class CoordinateDrawer {
 		window.initModality(Modality.APPLICATION_MODAL);
 		window.setResizable(false);
 		window.setTitle("Coordinate drawer");
-		window.getIcons().add(new Image("/resources/windowIcon.png"));
+		window.getIcons().add(new Image(getClass().getResource("/resources/windowIcon.png").toString()));
 		
 		//layout management
 		GridPane mainPane = new GridPane();
@@ -69,7 +69,9 @@ public class CoordinateDrawer {
 		startXBox.setAlignment(Pos.TOP_CENTER);
 		startXBox.setSpacing(10);
 		Label startXLabel = new Label("x:");
+		startXLabel.setStyle("-fx-text-fill: #bfc1bd");
 		TextField startXField = new TextField();
+		startXField.setId("start-x-field");
 		startXField.setMaxWidth(50);
 		startXBox.getChildren().addAll(startXLabel,startXField);
 		startPane.add(startXBox, 0, 1);
@@ -77,7 +79,9 @@ public class CoordinateDrawer {
 		startYBox.setAlignment(Pos.TOP_CENTER);
 		startYBox.setSpacing(10);
 		Label startYLabel = new Label("y:");
+		startYLabel.setStyle("-fx-text-fill: #bfc1bd");
 		TextField startYField = new TextField();
+		startYField.setId("start-y-field");
 		startYField.setMaxWidth(50);
 		startYBox.getChildren().addAll(startYLabel,startYField);
 		startPane.add(startYBox, 0, 2);
@@ -93,7 +97,9 @@ public class CoordinateDrawer {
 		endXBox.setAlignment(Pos.TOP_CENTER);
 		endXBox.setSpacing(10);
 		Label endXLabel = new Label("x:");
+		endXLabel.setStyle("-fx-text-fill: #bfc1bd");
 		TextField endXField = new TextField();
+		endXField.setId("end-x-field");
 		endXField.setMaxWidth(50);
 		endXBox.getChildren().addAll(endXLabel,endXField);
 		endPane.add(endXBox, 0, 1);
@@ -101,13 +107,15 @@ public class CoordinateDrawer {
 		endYBox.setAlignment(Pos.TOP_CENTER);
 		endYBox.setSpacing(10);
 		Label endYLabel = new Label("y:");
+		endYLabel.setStyle("-fx-text-fill: #bfc1bd");
 		TextField endYField = new TextField();
+		endYField.setId("end-y-field");
 		endYField.setMaxWidth(50);
 		endYBox.getChildren().addAll(endYLabel,endYField);
 		endPane.add(endYBox, 0, 2);
 		
 		for(int i = 0; i<2; i++) {
-			setRowConstraints(innerMainPane2, 100.0/2, VPos.CENTER);
+			setRowConstraints(innerMainPane2, 100.0/2, VPos.TOP);
 		}
 		setColumnConstraints(innerMainPane2, 100.0, HPos.CENTER);
 		errorLabel = new Label();

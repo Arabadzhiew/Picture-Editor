@@ -24,7 +24,7 @@ public class ConfirmationBox {
 		Stage window = new Stage();
 		window.initModality(Modality.APPLICATION_MODAL);
 		window.setTitle("File not saved");
-		window.getIcons().add(new Image("/resources/windowIcon.png"));
+		window.getIcons().add(new Image(getClass().getResource("/resources/windowIcon.png").toString()));
 		
 		ImageView confirmationImage = new ImageView(new Image(getClass().getResource("/resources/confirmationImage.png").toString()));
 		Label messageLabel = new Label();
@@ -70,6 +70,7 @@ public class ConfirmationBox {
 		buttonBox.getChildren().add(noButton);
 		mainBox.getChildren().add(buttonBox);
 		Scene scene = new Scene(mainBox,450,120);
+		scene.getStylesheets().add(getClass().getResource("/resources/secondaryStyle.css").toExternalForm());
 		window.setResizable(false);
 		window.setScene(scene);
 		

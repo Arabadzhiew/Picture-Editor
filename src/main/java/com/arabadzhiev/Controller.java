@@ -11,8 +11,7 @@ import java.util.ResourceBundle;
 
 import javax.imageio.ImageIO;
 
-import org.apache.commons.io.FilenameUtils;
-
+import javafx.application.Platform;
 import javafx.collections.FXCollections;
 import javafx.collections.ListChangeListener;
 import javafx.collections.ObservableList;
@@ -75,6 +74,7 @@ public class Controller implements Initializable, EventHandler<ActionEvent>{
 	private boolean brandNew=true;
 	private boolean filePresent=false;
 	private boolean filledShapes=false;
+	private boolean fromRubberBand=false;
 	
 	private File file;
 	private CoordinateDrawer cd = new CoordinateDrawer();
@@ -127,6 +127,7 @@ public class Controller implements Initializable, EventHandler<ActionEvent>{
 	@FXML private Button triangleButton;
 	@FXML private Button undoButton;
 	@FXML private Button redoButton;
+	@FXML private AnchorPane transitionalPane;
 	@FXML private AnchorPane canvasAnchor;
 	@FXML private AnchorPane resizePane;
 	@FXML private ScrollPane canvasSnapshotAnchor;
@@ -154,8 +155,8 @@ public class Controller implements Initializable, EventHandler<ActionEvent>{
 		imageDirectory.setInitialFileName("unnamed");
 		canvasSnapshots.add(canvas.snapshot(null, null));
 		gc = canvas.getGraphicsContext2D();
-		//gc.setFill(Color.WHITE);
-		//gc.fillRect(0, 0, canvas.getWidth(), canvas.getHeight());
+		gc.setFill(Color.WHITE);
+		gc.fillRect(0, 0, canvas.getWidth(), canvas.getHeight());
 		pw = gc.getPixelWriter();
 		sParameters.setFill(Color.WHITE);
 		pr = canvas.snapshot(sParameters, null).getPixelReader();
@@ -167,18 +168,15 @@ public class Controller implements Initializable, EventHandler<ActionEvent>{
 		canvasText.setStyle("-fx-text-fill: "+getColorHex(colorPicker.getValue()));
 		
 		colorPicker.valueProperty().addListener((property, olvValue, newValue)->{
-			if(canvasAnchor.getChildren().contains(canvasText)) {
-				String hex = getColorHex(newValue);
-				canvasText.setStyle("-fx-text-fill: "+hex);
-			}
-			
+			String hex = getColorHex(newValue);
+			canvasText.setStyle("-fx-text-fill: "+hex);
 		});
 		
-		rootPane.widthProperty().addListener((property,oldVal,newVal) ->{
-			canvasPane.setMaxWidth((rootPane.getWidth()*0.66)+50);
+		transitionalPane.widthProperty().addListener((property,oldVal,newVal) ->{
+			canvasPane.setMaxWidth((rootPane.getWidth()*0.66)-10);
 		});
-		rootPane.heightProperty().addListener((property,oldVal,newVal) ->{
-			canvasPane.setMaxHeight((rootPane.getHeight()*0.66)+50);
+		transitionalPane.heightProperty().addListener((property,oldVal,newVal) ->{
+			canvasPane.setMaxHeight((rootPane.getHeight()*0.66)-15);
 		});
 		
 		widthField.setText(""+(int)canvas.getWidth());
@@ -187,13 +185,16 @@ public class Controller implements Initializable, EventHandler<ActionEvent>{
 			int parsedNewVal = parseFromTextField(widthField,newValue,600);
 			if(parsedNewVal>3840) {
 				widthField.setText(""+3840);
-				pr = canvas.snapshot(sParameters, null).getPixelReader();
 			}else if(parsedNewVal!=0&&canvas.getWidth()!=parsedNewVal) {
+				if(undoCounter>0) {
+					clearSnapshots();
+				}
 				canvasSnapshotAnchor.setPrefWidth(parsedNewVal);
 				canvas.setWidth(parsedNewVal);
 				WritableImage resizeSnapshot = canvas.snapshot(sParameters, null);
 				canvasSnapshots.add(resizeSnapshot);
 				pr = resizeSnapshot.getPixelReader();
+				undoButton.setDisable(false);
 			}
 		});
 		heightField.textProperty().addListener((property, oldValue, newValue) -> {
@@ -201,11 +202,15 @@ public class Controller implements Initializable, EventHandler<ActionEvent>{
 			if(parsedNewVal>2160) {
 				heightField.setText(""+2160);
 			}else if(parsedNewVal!=0&&canvas.getHeight()!=parsedNewVal) {
+				if(undoCounter>0) {
+					clearSnapshots();
+				}
 				canvasSnapshotAnchor.setPrefHeight(parsedNewVal);
 				canvas.setHeight(parsedNewVal);
 				WritableImage resizeSnapshot = canvas.snapshot(sParameters, null);
 				canvasSnapshots.add(resizeSnapshot);
 				pr = canvas.snapshot(sParameters, null).getPixelReader();
+				undoButton.setDisable(false);
 			}
 		});
 		
@@ -271,6 +276,15 @@ public class Controller implements Initializable, EventHandler<ActionEvent>{
 		notSavedImageView.setFitWidth(16);
 		notSavedImageView.setFitHeight(16);
 		
+		ImageView cropImageView = new ImageView(new Image(getClass().getResource("/resources/buttonImages/crop.png").toString()));
+		cropImageView.setFitWidth(20);
+		cropImageView.setFitHeight(20);
+		cropButton.setGraphic(cropImageView);
+		ImageView scissionImageView = new ImageView(new Image(getClass().getResource("/resources/buttonImages/scission.png").toString()));
+		scissionImageView.setFitWidth(20);
+		scissionImageView.setFitHeight(20);
+		scissionButton.setGraphic(scissionImageView);
+		
 		ImageView pencilImageView = new ImageView(new Image(getClass().getResource("/resources/buttonImages/pencil.png").toString()));
 		pencilImageView.setFitWidth(20);
 		pencilImageView.setFitHeight(20);
@@ -314,6 +328,11 @@ public class Controller implements Initializable, EventHandler<ActionEvent>{
 		redoImageView.setFitHeight(20);
 		redoButton.setGraphic(redoImageView);
 		
+		ImageView savedIconImageView = new ImageView(new Image(getClass().getResource("/resources/buttonImages/noFile.png").toString()));
+		savedIconImageView.setFitWidth(16);
+		savedIconImageView.setFitHeight(16);
+		savedIcon.setGraphic(savedIconImageView);
+		
 		linkedButtons.add(cropButton);
 		linkedButtons.add(scissionButton);
 		linkedButtons.add(cdButton);
@@ -326,7 +345,6 @@ public class Controller implements Initializable, EventHandler<ActionEvent>{
 		linkedButtons.add(ovalButton);
 		linkedButtons.add(triangleButton);
 	}
-	
 	public void listenForMovement(MouseEvent e) {
 		locator.setText("x:" + e.getX() + " y:" + e.getY());
 		if(currentTool==MOVE) {
@@ -495,9 +513,9 @@ public class Controller implements Initializable, EventHandler<ActionEvent>{
 					pr = snapshot.getPixelReader();
 					undoButton.setDisable(false);
 					gc.drawImage(snapshot, 0, 0);
-					canvasAnchor.getChildren().remove(canvasText);
 					rubberBandSnapshot = canvas.snapshot(sParameters, null);
 				}
+				canvasAnchor.getChildren().remove(canvasText);
 				currentTool=TEXT;
 			}
 			
@@ -571,7 +589,7 @@ public class Controller implements Initializable, EventHandler<ActionEvent>{
 				}
 				canvasText.requestFocus();
 				gc.setStroke(Color.GREEN);
-				drawRectangle(startX, startY, endX, endY, false);
+				rubberBand(startX, startY, endX, endY);
 				createdText=true;
 			}
 		}else if(currentTool==TEXT_EDIT) {
@@ -598,7 +616,9 @@ public class Controller implements Initializable, EventHandler<ActionEvent>{
 			undoButton.setDisable(false);
 			if(currentTool==MOVE) {
 				gc.setLineDashes(4);
-				drawRectangle(rubberBandBounds.getMinX(), rubberBandBounds.getMinY(), rubberBandBounds.getMaxX(), rubberBandBounds.getMaxY(), false);
+				fromRubberBand = true;
+				drawRectangle(rubberBandBounds.getMinX(), rubberBandBounds.getMinY(), rubberBandBounds.getMaxX(), rubberBandBounds.getMaxY(),false);
+				fromRubberBand = false;
 			}
 		}
 		
@@ -608,7 +628,7 @@ public class Controller implements Initializable, EventHandler<ActionEvent>{
 				clearSnapshots();
 			}
 			WritableImage snapshot = canvasSnapshotAnchor.snapshot(sParameters, null);
-			drawRectangle(rubberBandBounds.getMinX(), rubberBandBounds.getMinY(), rubberBandBounds.getMaxX(), rubberBandBounds.getMaxY(), false);
+			rubberBand(rubberBandBounds.getMinX(), rubberBandBounds.getMinY(), rubberBandBounds.getMaxX(), rubberBandBounds.getMaxY());
 			canvasSnapshots.add(snapshot);
 			pr = snapshot.getPixelReader();
 			undoButton.setDisable(false);
@@ -666,7 +686,9 @@ public class Controller implements Initializable, EventHandler<ActionEvent>{
 			endY=canvas.getHeight();
 		}
 		gc.drawImage(rubberBandSnapshot, 0, 0);
+		fromRubberBand = true;
 		drawRectangle(startX, startY, endX, endY, false);
+		fromRubberBand = false;
 	}
 	
 	private int parseFromTextField(TextField tf, String value, int backupValue) {
@@ -687,7 +709,9 @@ public class Controller implements Initializable, EventHandler<ActionEvent>{
 			}
 			returnInt = Integer.parseInt(value);
 		}catch(NumberFormatException e1) {
-			tf.setText(""+backupValue);
+			Platform.runLater(() -> { 
+				tf.setText(""+backupValue);
+	        });
 		}catch(StringIndexOutOfBoundsException e2) {
 			//
 		}
@@ -753,7 +777,9 @@ public class Controller implements Initializable, EventHandler<ActionEvent>{
 			heightField.setText(""+(int)cropImage.getHeight());
 		}else if(fullCrop) {
 			gc.setStroke(Color.GREEN);
-			drawRectangle(startX, startY, endX, endY, false);
+			fromRubberBand = true;
+			drawRectangle(startX, startY, endX, endY,false);
+			fromRubberBand = false;
 		}
 	}
 	
@@ -769,7 +795,11 @@ public class Controller implements Initializable, EventHandler<ActionEvent>{
 				gc.fillRect(startX, startY, endX-startX, endY-startY);
 			}
 		}else if(!filled) {
-			gc.setLineWidth(thickness);
+			if(fromRubberBand) {
+				gc.setLineWidth(2);
+			}else {
+				gc.setLineWidth(thickness);
+			}
 			if(endX-startX<0 && endY-startY<0) {
 				gc.strokeRect(endX, endY, startX-endX, startY-endY);
 			}else if(endX-startX<0 && endY-startY>=0){
@@ -911,7 +941,8 @@ public class Controller implements Initializable, EventHandler<ActionEvent>{
 		WritableImage snapshot = canvas.snapshot(sParameters, null);
 		String extention="";
 		if(file!=null) {
-			extention = FilenameUtils.getExtension(file.toString());
+			String path = file.getName();
+			extention = path.substring(path.length()-3, path.length());
 		}
 		if(extention.equals("jpg")) {
 			extention = "png";
@@ -947,7 +978,8 @@ public class Controller implements Initializable, EventHandler<ActionEvent>{
 		}
 		String extention="";
 		if(file!=null) {
-			extention = FilenameUtils.getExtension(file.toString());
+			String path = file.getName();
+			extention = path.substring(path.length()-3, path.length());
 		}
 		if(extention.equals("jpg")) {
 			extention = "png";
